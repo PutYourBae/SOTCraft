@@ -105,58 +105,23 @@ const resourceImages: Record<string, string> = {
 }
 
 const initialLines: CraftLine[] = [
-  { id: 1, itemId: 'ram7', quantity: 5 },
-  { id: 2, itemId: 'ammo556', quantity: 900 },
+  { id: 1, itemId: 'ram7', quantity: 1 },
 ]
 
-const initialSessions: Session[] = [
-  {
-    id: 101,
-    name: 'Restock markas minggu ini',
-    createdAt: '2026-05-20T08:30:00.000Z',
-    status: 'Dalam Proses',
-    lines: initialLines,
-    resources: {
-      'Blueprint RAM-7': 5,
-      'Gun Oil': 15,
-      Gold: 150,
-      Emerald: 50,
-      Steel: 75,
-      Silver: 375,
-      'Olahan Kayu': 260,
-      Copper: 500,
-      'Gun Powder': 20,
-      'Blueprint 5.56x45MM': 20,
-      Iron: 300,
-    },
-  },
-  {
-    id: 102,
-    name: 'Batch kecil ammo',
-    createdAt: '2026-05-19T16:10:00.000Z',
-    status: 'Selesai',
-    lines: [{ id: 3, itemId: 'ammo556', quantity: 450 }],
-    resources: {
-      'Gun Powder': 10,
-      'Blueprint 5.56x45MM': 10,
-      Gold: 50,
-      'Olahan Kayu': 80,
-      Silver: 150,
-      Iron: 150,
-      Copper: 200,
-    },
-  },
-]
+const initialSessions: Session[] = []
 
 const storageKey = 'sotcraft.sessions'
 
 function getInitialSessions() {
   try {
     const savedSessions = window.localStorage.getItem(storageKey)
-    return savedSessions ? (JSON.parse(savedSessions) as Session[]) : initialSessions
+    if (savedSessions) {
+      return JSON.parse(savedSessions) as Session[]
+    }
   } catch {
-    return initialSessions
+    // ignore parse errors
   }
+  return initialSessions
 }
 
 function getCraftCount(line: CraftLine) {
