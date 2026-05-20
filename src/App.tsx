@@ -58,7 +58,7 @@ const recipes: Record<
     name: 'RAM-7',
     unit: 'senjata',
     accent: 'weapon',
-    image: '/resource/ram7.svg',
+    image: `${import.meta.env.BASE_URL}resource/ram7.svg`,
     description: 'Assault rifle illegal crafting',
     resources: {
       'Blueprint RAM-7': 1,
@@ -75,7 +75,7 @@ const recipes: Record<
     name: 'Ammo 5.56x45',
     unit: 'peluru',
     accent: 'ammo',
-    image: '/resource/ammo-556.svg',
+    image: `${import.meta.env.BASE_URL}resource/ammo-556.svg`,
     description: '1 craft clip menghasilkan 45 peluru',
     output: '45 peluru per craft',
     resources: {
@@ -90,18 +90,20 @@ const recipes: Record<
   },
 }
 
+const base = import.meta.env.BASE_URL
+
 const resourceImages: Record<string, string> = {
-  'Blueprint RAM-7': '/resource/blueprint.svg',
-  'Blueprint 5.56x45MM': '/resource/blueprint.svg',
-  'Gun Oil': '/resource/gun-oil.svg',
-  Gold: '/resource/gold.svg',
-  Emerald: '/resource/emerald.svg',
-  Steel: '/resource/steel.svg',
-  Silver: '/resource/silver.svg',
-  'Olahan Kayu': '/resource/wood.svg',
-  Copper: '/resource/copper.svg',
-  'Gun Powder': '/resource/gun-powder.svg',
-  Iron: '/resource/iron.svg',
+  'Blueprint RAM-7': `${base}resource/blueprint.svg`,
+  'Blueprint 5.56x45MM': `${base}resource/blueprint.svg`,
+  'Gun Oil': `${base}resource/gun-oil.svg`,
+  Gold: `${base}resource/gold.svg`,
+  Emerald: `${base}resource/emerald.svg`,
+  Steel: `${base}resource/steel.svg`,
+  Silver: `${base}resource/silver.svg`,
+  'Olahan Kayu': `${base}resource/wood.svg`,
+  Copper: `${base}resource/copper.svg`,
+  'Gun Powder': `${base}resource/gun-powder.svg`,
+  Iron: `${base}resource/iron.svg`,
 }
 
 const initialLines: CraftLine[] = [
