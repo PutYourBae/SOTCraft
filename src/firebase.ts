@@ -12,5 +12,28 @@ const firebaseConfig = {
   measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID,
 }
 
-const app = initializeApp(firebaseConfig)
-export const db = getDatabase(app)
+// Periksa apakah konfigurasi Firebase valid dan lengkap
+const hasFirebaseConfig = 
+  !!firebaseConfig.apiKey && 
+  !!firebaseConfig.databaseURL && 
+  firebaseConfig.apiKey !== 'undefined' && 
+  firebaseConfig.databaseURL !== 'undefined'
+
+let app = null
+let db: any = null
+
+if (hasFirebaseConfig) {
+  try {
+    app = initializeApp(firebaseConfig)
+    db = getDatabase(app)
+  } catch (error) {
+    console.error("Gagal menginisialisasi Firebase:", error)
+  }
+} else {
+  console.warn(
+    "Kredensial Firebase tidak lengkap atau tidak ditemukan.\n" +
+    "Aplikasi akan berjalan dalam mode fallback offline (tidak dapat menyimpan data ke cloud)."
+  )
+}
+
+export { db }

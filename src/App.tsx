@@ -165,7 +165,7 @@ function App() {
   // Track expanded resource panels in history
   const [expandedResources, setExpandedResources] = useState<Record<string, boolean>>({})
 
-  const sessionsRef = useRef(ref(db, 'sessions'))
+  const sessionsRef = useRef(db ? ref(db, 'sessions') : null)
 
   const resources = useMemo(() => calculateResources(lines), [lines])
   const sortedResources = useMemo(
@@ -180,18 +180,30 @@ function App() {
 
   // Subscribe to Firebase Realtime Database
   useEffect(() => {
-    const unsubscribe = onValue(sessionsRef.current, (snapshot) => {
-      const data = snapshot.val()
-      if (data) {
-        // Convert Firebase object (keyed by push ID) to sorted array (newest first)
-        const list: Session[] = Object.entries(data).map(([, val]) => val as Session)
-        list.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-        setSessions(list)
-      } else {
-        setSessions([])
-      }
+    if (!sessionsRef.current) {
       setLoading(false)
-    })
+      return
+    }
+
+    const unsubscribe = onValue(
+      sessionsRef.current,
+      (snapshot) => {
+        const data = snapshot.val()
+        if (data) {
+          // Convert Firebase object (keyed by push ID) to sorted array (newest first)
+          const list: Session[] = Object.entries(data).map(([, val]) => val as Session)
+          list.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+          setSessions(list)
+        } else {
+          setSessions([])
+        }
+        setLoading(false)
+      },
+      (error) => {
+        console.error("Gagal mengambil data dari Firebase:", error)
+        setLoading(false)
+      }
+    )
 
     return () => unsubscribe()
   }, [])
@@ -214,19 +226,29 @@ function App() {
   }
 
   async function saveSession() {
-    const sessionId = Date.now().toString()
-    const nextSession: Session = {
-      id: sessionId,
-      name: sessionName.trim() || 'Crafting tanpa nama',
-      createdAt: new Date().toISOString(),
-      status: 'Dalam Proses',
-      lines,
-      resources,
-    }
+    try {
+      const sessionId = Date.now().toString()
+      const nextSession: Session = {
+        id: sessionId,
+        name: sessionName.trim() || 'Crafting tanpa nama',
+        createdAt: new Date().toISOString(),
+        status: 'Dalam Proses',
+        lines,
+        resources,
+      }
 
-    // Push to Firebase with the id as the key
-    await push(sessionsRef.current, nextSession)
-    setActivePage('history')
+      if (!sessionsRef.current) {
+        throw new Error("Firebase Database belum terhubung. Periksa apakah kredensial Firebase sudah dimasukkan di environment variables.")
+      }
+
+      // Push to Firebase with the id as the key
+      await push(sessionsRef.current, nextSession)
+      setSessionName('') // reset input nama session
+      setActivePage('history')
+    } catch (error: any) {
+      console.error("Gagal menyimpan ke Firebase:", error)
+      alert(`Gagal menyimpan perhitungan: ${error.message || error}`)
+    }
   }
 
   function startFinalization(
@@ -271,28 +293,46 @@ function App() {
       return
     }
 
-    // Find the Firebase key for this session
-    const sessionRef = ref(db, `sessions`)
-    // We need to query by id — fetch all and find the matching key
-    // Since we stored id inside the object, we search the snapshot keys
-    onValue(sessionRef, async (snapshot) => {
-      const data = snapshot.val()
-      if (!data) return
+    if (!db) {
+      alert("Firebase Database belum terhubung. Periksa environment variables Anda.")
+      return
+    }
 
-      const fbKey = Object.keys(data).find((k) => data[k].id === id)
-      if (!fbKey) return
+    try {
+      // Find the Firebase key for this session
+      const sessionRef = ref(db, `sessions`)
+      // We need to query by id — fetch all and find the matching key
+      // Since we stored id inside the object, we search the snapshot keys
+      onValue(sessionRef, async (snapshot) => {
+        const data = snapshot.val()
+        if (!data) return
 
-      const updates: Partial<Session> = {
-        status: pending.status,
-        cancelNote:
-          pending.status === 'Dibatalkan'
-            ? pending.cancelNote.trim()
-            : undefined,
-      }
+        const fbKey = Object.keys(data).find((k) => data[k].id === id)
+        if (!fbKey) return
 
-      await update(ref(db, `sessions/${fbKey}`), updates)
-      cancelFinalization(id)
-    }, { onlyOnce: true })
+        const updates: Partial<Session> = {
+          status: pending.status,
+          cancelNote:
+            pending.status === 'Dibatalkan'
+              ? pending.cancelNote.trim()
+              : undefined,
+        }
+
+        try {
+          await update(ref(db, `sessions/${fbKey}`), updates)
+          cancelFinalization(id)
+        } catch (updateError: any) {
+          console.error("Gagal memperbarui status di Firebase:", updateError)
+          alert(`Gagal memperbarui status: ${updateError.message || updateError}`)
+        }
+      }, (error) => {
+        console.error("Gagal membaca dari Firebase:", error)
+        alert(`Gagal membaca database: ${error.message || error}`)
+      }, { onlyOnce: true })
+    } catch (error: any) {
+      console.error("Gagal mengakses Firebase:", error)
+      alert(`Gagal mengakses database: ${error.message || error}`)
+    }
   }
 
   function toggleResourceExpand(sessionId: string) {
@@ -358,6 +398,27 @@ function App() {
             Mafia Crew Mode
           </div>
         </header>
+
+        {!db && (
+          <div className="db-warning-banner" style={{
+            background: 'rgba(239, 68, 68, 0.1)',
+            border: '1px solid rgba(239, 68, 68, 0.3)',
+            color: '#f87171',
+            padding: '12px 16px',
+            borderRadius: '8px',
+            margin: '0 24px 20px 24px',
+            fontSize: '14px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '10px',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+          }}>
+            <XCircle size={18} style={{ flexShrink: 0 }} />
+            <span>
+              <strong>Firebase Database belum terhubung!</strong> Kredensial database di Environment Variables kosong atau salah. Aplikasi berjalan dalam mode demo offline (Save/History dinonaktifkan).
+            </span>
+          </div>
+        )}
 
         {activePage === 'calculator' ? (
           <div className="calculator-grid">
