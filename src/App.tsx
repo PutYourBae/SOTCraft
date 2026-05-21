@@ -159,6 +159,12 @@ function formatResourceName(name: string) {
 }
 
 function App() {
+  const [isAuthenticated, setIsAuthenticated] = useState(
+    sessionStorage.getItem('sotcraft_auth') === 'true'
+  )
+  const [passwordInput, setPasswordInput] = useState('')
+  const [loginError, setLoginError] = useState(false)
+
   const [activePage, setActivePage] = useState<'calculator' | 'history'>(
     'calculator',
   )
@@ -348,6 +354,52 @@ function App() {
       ...prev,
       [sessionId]: !prev[sessionId],
     }))
+  }
+
+  function handleLogin(e: React.FormEvent) {
+    e.preventDefault()
+    if (passwordInput === import.meta.env.VITE_ACCESS_PASSWORD) {
+      setIsAuthenticated(true)
+      sessionStorage.setItem('sotcraft_auth', 'true')
+      setLoginError(false)
+    } else {
+      setLoginError(true)
+      setPasswordInput('')
+    }
+  }
+
+  if (!isAuthenticated) {
+    return (
+      <main className="login-screen">
+        <div className="login-card">
+          <div className="login-header">
+            <div className="brand-mark">
+              <Shield size={32} />
+            </div>
+            <h1>Access Restricted</h1>
+          </div>
+          <blockquote className="login-quote">
+            "If you don't have the password, you're not hot enough for this operation. Walk away."
+          </blockquote>
+          <form className="login-form" onSubmit={handleLogin}>
+            <input
+              type="password"
+              placeholder="Enter Passphrase"
+              value={passwordInput}
+              onChange={(e) => {
+                setPasswordInput(e.target.value)
+                setLoginError(false)
+              }}
+              autoFocus
+            />
+            {loginError && <p className="login-error">Passphrase incorrect.</p>}
+            <button className="primary-button" type="submit">
+              Enter Operation
+            </button>
+          </form>
+        </div>
+      </main>
+    )
   }
 
   return (
