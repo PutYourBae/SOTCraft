@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   Archive,
   CheckCircle2,
@@ -15,6 +15,8 @@ import {
   Trash2,
   XCircle,
 } from 'lucide-react'
+import { ref, onValue, push, update } from 'firebase/database'
+import { db } from './firebase'
 import './App.css'
 
 type ItemId = 'ram7' | 'ammo556'
@@ -28,7 +30,7 @@ type CraftLine = {
 }
 
 type Session = {
-  id: number
+  id: string
   name: string
   createdAt: string
   status: Status
@@ -110,22 +112,6 @@ const initialLines: CraftLine[] = [
   { id: 1, itemId: 'ram7', quantity: 1 },
 ]
 
-const initialSessions: Session[] = []
-
-const storageKey = 'sotcraft.sessions'
-
-function getInitialSessions() {
-  try {
-    const savedSessions = window.localStorage.getItem(storageKey)
-    if (savedSessions) {
-      return JSON.parse(savedSessions) as Session[]
-    }
-  } catch {
-    // ignore parse errors
-  }
-  return initialSessions
-}
-
 function getCraftCount(line: CraftLine) {
   if (line.itemId === 'ammo556') {
     return Math.ceil(line.quantity / 45)
@@ -170,11 +156,16 @@ function App() {
   )
   const [lines, setLines] = useState<CraftLine[]>(initialLines)
   const [sessionName, setSessionName] = useState('Operasi crafting malam ini')
-  const [sessions, setSessions] = useState<Session[]>(getInitialSessions)
+  const [sessions, setSessions] = useState<Session[]>([])
+  const [loading, setLoading] = useState(true)
   const [statusFilter, setStatusFilter] = useState<Status | 'Semua'>('Semua')
   const [pendingFinalization, setPendingFinalization] = useState<
-    Record<number, PendingFinalization>
+    Record<string, PendingFinalization>
   >({})
+  // Track expanded resource panels in history
+  const [expandedResources, setExpandedResources] = useState<Record<string, boolean>>({})
+
+  const sessionsRef = useRef(ref(db, 'sessions'))
 
   const resources = useMemo(() => calculateResources(lines), [lines])
   const sortedResources = useMemo(
@@ -187,9 +178,23 @@ function App() {
     (session) => statusFilter === 'Semua' || session.status === statusFilter,
   )
 
+  // Subscribe to Firebase Realtime Database
   useEffect(() => {
-    window.localStorage.setItem(storageKey, JSON.stringify(sessions))
-  }, [sessions])
+    const unsubscribe = onValue(sessionsRef.current, (snapshot) => {
+      const data = snapshot.val()
+      if (data) {
+        // Convert Firebase object (keyed by push ID) to sorted array (newest first)
+        const list: Session[] = Object.entries(data).map(([, val]) => val as Session)
+        list.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+        setSessions(list)
+      } else {
+        setSessions([])
+      }
+      setLoading(false)
+    })
+
+    return () => unsubscribe()
+  }, [])
 
   function updateLine(id: number, payload: Partial<CraftLine>) {
     setLines((current) =>
@@ -208,9 +213,10 @@ function App() {
     setLines((current) => current.filter((line) => line.id !== id))
   }
 
-  function saveSession() {
+  async function saveSession() {
+    const sessionId = Date.now().toString()
     const nextSession: Session = {
-      id: Date.now(),
+      id: sessionId,
       name: sessionName.trim() || 'Crafting tanpa nama',
       createdAt: new Date().toISOString(),
       status: 'Dalam Proses',
@@ -218,7 +224,8 @@ function App() {
       resources,
     }
 
-    setSessions((current) => [nextSession, ...current])
+    // Push to Firebase with the id as the key
+    await push(sessionsRef.current, nextSession)
     setActivePage('history')
   }
 
@@ -239,7 +246,7 @@ function App() {
     }))
   }
 
-  function cancelFinalization(id: number) {
+  function cancelFinalization(id: string) {
     setPendingFinalization((current) => {
       const next = { ...current }
       delete next[id]
@@ -247,7 +254,7 @@ function App() {
     })
   }
 
-  function updatePendingCancelNote(id: number, cancelNote: string) {
+  function updatePendingCancelNote(id: string, cancelNote: string) {
     setPendingFinalization((current) => ({
       ...current,
       [id]: {
@@ -257,29 +264,42 @@ function App() {
     }))
   }
 
-  function confirmFinalization(id: number) {
+  async function confirmFinalization(id: string) {
     const pending = pendingFinalization[id]
 
     if (!pending) {
       return
     }
 
-    setSessions((current) =>
-      current.map((session) =>
-        session.id === id
-          ? {
-              ...session,
-              status: pending.status,
-              cancelNote:
-                pending.status === 'Dibatalkan'
-                  ? pending.cancelNote.trim()
-                  : undefined,
-            }
-          : session,
-      ),
-    )
+    // Find the Firebase key for this session
+    const sessionRef = ref(db, `sessions`)
+    // We need to query by id — fetch all and find the matching key
+    // Since we stored id inside the object, we search the snapshot keys
+    onValue(sessionRef, async (snapshot) => {
+      const data = snapshot.val()
+      if (!data) return
 
-    cancelFinalization(id)
+      const fbKey = Object.keys(data).find((k) => data[k].id === id)
+      if (!fbKey) return
+
+      const updates: Partial<Session> = {
+        status: pending.status,
+        cancelNote:
+          pending.status === 'Dibatalkan'
+            ? pending.cancelNote.trim()
+            : undefined,
+      }
+
+      await update(ref(db, `sessions/${fbKey}`), updates)
+      cancelFinalization(id)
+    }, { onlyOnce: true })
+  }
+
+  function toggleResourceExpand(sessionId: string) {
+    setExpandedResources((prev) => ({
+      ...prev,
+      [sessionId]: !prev[sessionId],
+    }))
   }
 
   return (
@@ -507,140 +527,186 @@ function App() {
               </div>
             </div>
 
-            <div className="session-list">
-              {filteredSessions.map((session) => {
-                const pending = pendingFinalization[session.id]
-                const isLocked = session.status !== 'Dalam Proses'
-                const cancelNote = pending?.cancelNote ?? session.cancelNote ?? ''
-
-                return (
-                <article className={isLocked ? 'session-card locked' : 'session-card'} key={session.id}>
-                  <div className="session-head">
-                    <div>
-                      <p className="eyebrow">{formatDate(session.createdAt)}</p>
-                      <h3>{session.name}</h3>
-                    </div>
-                    <span className={`status-pill ${session.status.toLowerCase().replaceAll(' ', '-')}`}>
-                      {session.status === 'Selesai' && <CheckCircle2 size={15} />}
-                      {session.status === 'Dalam Proses' && <ClipboardList size={15} />}
-                      {session.status === 'Dibatalkan' && <XCircle size={15} />}
-                      {session.status}
-                    </span>
+            {loading ? (
+              <div className="loading-state">
+                <div className="loading-spinner" />
+                <p>Memuat data dari server...</p>
+              </div>
+            ) : (
+              <div className="session-list">
+                {filteredSessions.length === 0 && (
+                  <div className="empty-state">
+                    <ClipboardList size={40} />
+                    <p>Belum ada session yang tersimpan.</p>
                   </div>
+                )}
+                {filteredSessions.map((session) => {
+                  const pending = pendingFinalization[session.id]
+                  const isLocked = session.status !== 'Dalam Proses'
+                  const cancelNote = pending?.cancelNote ?? session.cancelNote ?? ''
+                  const sortedSessionResources = Object.entries(session.resources).sort((a, b) => b[1] - a[1])
+                  const maxSessionResource = sortedSessionResources[0]?.[1] ?? 1
+                  const isExpanded = expandedResources[session.id] ?? false
+                  const PREVIEW_COUNT = 6
 
-                  <div className="session-items">
-                    {session.lines.map((line) => (
-                      <span key={line.id}>
-                        <img src={recipes[line.itemId].image} alt="" />
-                        {recipes[line.itemId].name}: {line.quantity} {recipes[line.itemId].unit}
+                  return (
+                  <article className={isLocked ? 'session-card locked' : 'session-card'} key={session.id}>
+                    <div className="session-head">
+                      <div>
+                        <p className="eyebrow">{formatDate(session.createdAt)}</p>
+                        <h3>{session.name}</h3>
+                      </div>
+                      <span className={`status-pill ${session.status.toLowerCase().replaceAll(' ', '-')}`}>
+                        {session.status === 'Selesai' && <CheckCircle2 size={15} />}
+                        {session.status === 'Dalam Proses' && <ClipboardList size={15} />}
+                        {session.status === 'Dibatalkan' && <XCircle size={15} />}
+                        {session.status}
                       </span>
-                    ))}
-                  </div>
+                    </div>
 
-                  <div className="compact-resources">
-                    {Object.entries(session.resources)
-                      .sort((a, b) => b[1] - a[1])
-                      .slice(0, 6)
-                      .map(([name, amount]) => (
-                        <span key={name}>
-                          <img src={resourceImages[name]} alt="" />
-                          {name} <strong>{amount}</strong>
+                    <div className="session-items">
+                      {session.lines.map((line) => (
+                        <span key={line.id}>
+                          <img src={recipes[line.itemId].image} alt="" />
+                          {recipes[line.itemId].name}: {line.quantity} {recipes[line.itemId].unit}
                         </span>
                       ))}
-                  </div>
+                    </div>
 
-                  <div className="session-actions">
-                    {(['Dalam Proses', 'Selesai', 'Dibatalkan'] as Status[]).map((status) => (
-                      <button
-                        className={session.status === status ? 'small-button active' : 'small-button'}
-                        key={status}
-                        onClick={() => {
-                          if (status !== 'Dalam Proses') {
-                            startFinalization(session, status)
+                    {/* Full Resource Summary — same style as calculator */}
+                    <div className="session-resource-summary">
+                      <div className="session-resource-header">
+                        <span className="session-resource-title">
+                          <SlidersHorizontal size={14} />
+                          Resource Summary
+                        </span>
+                        {sortedSessionResources.length > PREVIEW_COUNT && (
+                          <button
+                            className="expand-toggle"
+                            type="button"
+                            onClick={() => toggleResourceExpand(session.id)}
+                          >
+                            {isExpanded
+                              ? `Sembunyikan`
+                              : `+${sortedSessionResources.length - PREVIEW_COUNT} lainnya`}
+                          </button>
+                        )}
+                      </div>
+                      <div className="resource-list compact">
+                        {(isExpanded ? sortedSessionResources : sortedSessionResources.slice(0, PREVIEW_COUNT)).map(([name, amount], index) => (
+                          <div className="resource-row" key={name}>
+                            <div>
+                              <span className="resource-name">
+                                <img src={resourceImages[name]} alt="" />
+                                {name}
+                              </span>
+                              <strong>{amount.toLocaleString('id-ID')}</strong>
+                            </div>
+                            <div className="bar-track">
+                              <span
+                                className="bar-fill"
+                                style={{ width: `${Math.max(10, (amount / maxSessionResource) * 100)}%` }}
+                              />
+                            </div>
+                            {index === 0 && <em>Top priority</em>}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="session-actions">
+                      {(['Dalam Proses', 'Selesai', 'Dibatalkan'] as Status[]).map((status) => (
+                        <button
+                          className={session.status === status ? 'small-button active' : 'small-button'}
+                          key={status}
+                          onClick={() => {
+                            if (status !== 'Dalam Proses') {
+                              startFinalization(session, status)
+                            }
+                          }}
+                          type="button"
+                          disabled={isLocked || session.status === status}
+                        >
+                          {status}
+                        </button>
+                      ))}
+                    </div>
+
+                    {pending?.status === 'Selesai' && (
+                      <div className="confirm-panel">
+                        <div>
+                          <strong>Konfirmasi selesai</strong>
+                          <p>
+                            Setelah dikonfirmasi, status session ini akan terkunci
+                            dan tidak bisa diganti lagi.
+                          </p>
+                        </div>
+                        <div className="confirm-actions">
+                          <button
+                            className="small-button"
+                            onClick={() => cancelFinalization(session.id)}
+                            type="button"
+                          >
+                            Batal
+                          </button>
+                          <button
+                            className="small-button active"
+                            onClick={() => confirmFinalization(session.id)}
+                            type="button"
+                          >
+                            Konfirmasi Selesai
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
+                    {(pending?.status === 'Dibatalkan' || session.status === 'Dibatalkan') && (
+                      <label className="cancel-note">
+                        {isLocked ? 'Keterangan pembatalan' : 'Keterangan sebelum cancel'}
+                        <textarea
+                          value={cancelNote}
+                          onChange={(event) =>
+                            updatePendingCancelNote(session.id, event.target.value)
                           }
-                        }}
-                        type="button"
-                        disabled={isLocked || session.status === status}
-                      >
-                        {status}
-                      </button>
-                    ))}
-                  </div>
+                          readOnly={isLocked}
+                          placeholder="Contoh: bahan belum lengkap, blueprint dipakai batch lain, atau order dibatalkan."
+                        />
+                      </label>
+                    )}
 
-                  {pending?.status === 'Selesai' && (
-                    <div className="confirm-panel">
-                      <div>
-                        <strong>Konfirmasi selesai</strong>
-                        <p>
-                          Setelah dikonfirmasi, status session ini akan terkunci
-                          dan tidak bisa diganti lagi.
-                        </p>
+                    {pending?.status === 'Dibatalkan' && (
+                      <div className="confirm-panel">
+                        <div>
+                          <strong>Konfirmasi cancel</strong>
+                          <p>
+                            Catatan wajib diisi. Setelah dikonfirmasi, status akan
+                            terkunci sebagai dibatalkan.
+                          </p>
+                        </div>
+                        <div className="confirm-actions">
+                          <button
+                            className="small-button"
+                            onClick={() => cancelFinalization(session.id)}
+                            type="button"
+                          >
+                            Batal
+                          </button>
+                          <button
+                            className="small-button active"
+                            onClick={() => confirmFinalization(session.id)}
+                            type="button"
+                            disabled={!cancelNote.trim()}
+                          >
+                            Konfirmasi Cancel
+                          </button>
+                        </div>
                       </div>
-                      <div className="confirm-actions">
-                        <button
-                          className="small-button"
-                          onClick={() => cancelFinalization(session.id)}
-                          type="button"
-                        >
-                          Batal
-                        </button>
-                        <button
-                          className="small-button active"
-                          onClick={() => confirmFinalization(session.id)}
-                          type="button"
-                        >
-                          Konfirmasi Selesai
-                        </button>
-                      </div>
-                    </div>
-                  )}
-
-                  {(pending?.status === 'Dibatalkan' || session.status === 'Dibatalkan') && (
-                    <label className="cancel-note">
-                      {isLocked ? 'Keterangan pembatalan' : 'Keterangan sebelum cancel'}
-                      <textarea
-                        value={cancelNote}
-                        onChange={(event) =>
-                          updatePendingCancelNote(session.id, event.target.value)
-                        }
-                        readOnly={isLocked}
-                        placeholder="Contoh: bahan belum lengkap, blueprint dipakai batch lain, atau order dibatalkan."
-                      />
-                    </label>
-                  )}
-
-                  {pending?.status === 'Dibatalkan' && (
-                    <div className="confirm-panel">
-                      <div>
-                        <strong>Konfirmasi cancel</strong>
-                        <p>
-                          Catatan wajib diisi. Setelah dikonfirmasi, status akan
-                          terkunci sebagai dibatalkan.
-                        </p>
-                      </div>
-                      <div className="confirm-actions">
-                        <button
-                          className="small-button"
-                          onClick={() => cancelFinalization(session.id)}
-                          type="button"
-                        >
-                          Batal
-                        </button>
-                        <button
-                          className="small-button active"
-                          onClick={() => confirmFinalization(session.id)}
-                          type="button"
-                          disabled={!cancelNote.trim()}
-                        >
-                          Konfirmasi Cancel
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                </article>
-                )
-              })}
-            </div>
+                    )}
+                  </article>
+                  )
+                })}
+              </div>
+            )}
           </section>
         )}
       </section>

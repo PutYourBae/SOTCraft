@@ -38,7 +38,7 @@
 .item-token img,
 .resource-name img,
 .session-items img,
-.compact-resources img {
+.session-resource-summary img {
   width: 22px;
   height: 22px;
   object-fit: contain;
@@ -530,16 +530,14 @@ textarea:focus {
   background: rgba(255, 139, 139, 0.1);
 }
 
-.session-items,
-.compact-resources {
+.session-items {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
   margin-top: 14px;
 }
 
-.session-items span,
-.compact-resources span {
+.session-items span {
   padding: 7px 9px;
   border-radius: 8px;
   color: var(--text-secondary);
@@ -551,8 +549,89 @@ textarea:focus {
   gap: 7px;
 }
 
-.compact-resources strong {
-  color: var(--text-strong);
+/* Full resource summary inside history cards */
+.session-resource-summary {
+  margin-top: 16px;
+  padding: 14px;
+  border: 1px solid #1e2c37;
+  border-radius: 8px;
+  background: #0d1820;
+}
+
+.session-resource-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.session-resource-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+}
+
+.expand-toggle {
+  min-height: 26px;
+  padding: 0 10px;
+  border: 1px solid #2a3b48;
+  border-radius: 999px;
+  background: #111b23;
+  color: #e6c077;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.expand-toggle:hover {
+  background: #182530;
+  border-color: #e6c077;
+}
+
+.resource-list.compact {
+  gap: 10px;
+}
+
+.resource-list.compact .resource-row {
+  gap: 5px;
+}
+
+.resource-list.compact .bar-track {
+  height: 5px;
+}
+
+/* Loading & empty states */
+.loading-state,
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  padding: 60px 20px;
+  color: var(--muted);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+}
+
+.loading-spinner {
+  width: 36px;
+  height: 36px;
+  border: 3px solid #1e2c37;
+  border-top-color: #d7a83f;
+  border-radius: 50%;
+  animation: spin 0.75s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
 }
 
 .session-actions {
