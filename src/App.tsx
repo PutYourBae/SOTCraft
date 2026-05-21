@@ -82,7 +82,7 @@ const recipes: Record<
     output: '45 peluru per craft',
     resources: {
       'Gun Powder': 1,
-      'Blueprint 5.56x45MM': 1,
+      'Blueprint 5_56x45MM': 1,
       Gold: 5,
       'Olahan Kayu': 8,
       Silver: 15,
@@ -96,7 +96,7 @@ const base = import.meta.env.BASE_URL
 
 const resourceImages: Record<string, string> = {
   'Blueprint RAM-7': `${base}resource/blueprint.svg`,
-  'Blueprint 5.56x45MM': `${base}resource/blueprint.svg`,
+  'Blueprint 5_56x45MM': `${base}resource/blueprint.svg`,
   'Gun Oil': `${base}resource/gun-oil.svg`,
   Gold: `${base}resource/gold.svg`,
   Emerald: `${base}resource/emerald.svg`,
@@ -148,6 +148,13 @@ function formatDate(value: string) {
     hour: '2-digit',
     minute: '2-digit',
   }).format(new Date(value))
+}
+
+function formatResourceName(name: string) {
+  if (name === 'Blueprint 5_56x45MM') {
+    return 'Blueprint 5.56x45MM'
+  }
+  return name
 }
 
 function App() {
@@ -549,7 +556,7 @@ function App() {
                           <div>
                           <span className="resource-name">
                             <img src={resourceImages[name]} alt="" />
-                            {name}
+                            {formatResourceName(name)}
                           </span>
                           <strong>{amount.toLocaleString('id-ID')}</strong>
                         </div>
@@ -659,7 +666,7 @@ function App() {
                             <div>
                               <span className="resource-name">
                                 <img src={resourceImages[name]} alt="" />
-                                {name}
+                                {formatResourceName(name)}
                               </span>
                               <strong>{amount.toLocaleString('id-ID')}</strong>
                             </div>
