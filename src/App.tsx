@@ -21,7 +21,7 @@ import { ref, onValue, push, update } from 'firebase/database'
 import { db } from './firebase'
 import './App.css'
 
-type ItemId = 'ram7' | 'ammo556' | 'ammo9mm' | 'ammo44'
+type ItemId = 'ammo556' | 'ammo9mm' | 'ammo44'
 type Status = 'Dalam Proses' | 'Selesai' | 'Dibatalkan'
 type Resources = Record<string, number>
 
@@ -60,23 +60,7 @@ const recipes: Record<
     resources: Resources
   }
 > = {
-  ram7: {
-    name: 'RAM-7',
-    unit: 'senjata',
-    accent: 'weapon',
-    image: `${import.meta.env.BASE_URL}resource/ram7.svg`,
-    description: 'Assault rifle illegal crafting',
-    resources: {
-      'Blueprint RAM-7': 1,
-      'Gun Oil': 3,
-      Gold: 10,
-      Emerald: 10,
-      Steel: 15,
-      Silver: 15,
-      'Olahan Kayu': 20,
-      Copper: 20,
-    },
-  },
+
   ammo556: {
     name: '5.56x45',
     unit: 'peluru',
@@ -139,7 +123,7 @@ const recipes: Record<
 const base = import.meta.env.BASE_URL
 
 const resourceImages: Record<string, string> = {
-  'Blueprint RAM-7': `${base}resource/blueprint.svg`,
+
   'Blueprint 5_56X45MM': `${base}resource/blueprint.svg`,
   'Blueprint 9MM': `${base}resource/blueprint.svg`,
   'Blueprint 44_Magnum': `${base}resource/blueprint.svg`,
@@ -156,7 +140,7 @@ const resourceImages: Record<string, string> = {
 }
 
 const initialLines: CraftLine[] = [
-  { id: 1, itemId: 'ram7', quantity: 1 },
+  { id: 1, itemId: 'ammo9mm', quantity: 1 },
 ]
 
 function getCraftCount(line: CraftLine) {
@@ -844,7 +828,7 @@ function App() {
                                 })
                               }
                             >
-                              <option value="ram7">RAM-7</option>
+
                               <option value="ammo556">5.56x45</option>
                               <option value="ammo9mm">9mm</option>
                               <option value="ammo44">.44 Magnum</option>
