@@ -6,12 +6,14 @@ import {
   Clock3,
   Hammer,
   History,
+  Landmark,
   Layers3,
   Plus,
   Save,
   Search,
   Shield,
   SlidersHorizontal,
+  Store,
   Trash2,
   XCircle,
 } from 'lucide-react'
@@ -19,7 +21,7 @@ import { ref, onValue, push, update } from 'firebase/database'
 import { db } from './firebase'
 import './App.css'
 
-type ItemId = 'ram7' | 'ammo556'
+type ItemId = 'ram7' | 'ammo556' | 'ammo9mm' | 'ammo44'
 type Status = 'Dalam Proses' | 'Selesai' | 'Dibatalkan'
 type Resources = Record<string, number>
 
@@ -33,6 +35,7 @@ type Session = {
   id: string
   name: string
   createdAt: string
+  createdBy?: string
   status: Status
   cancelNote?: string
   lines: CraftLine[]
@@ -53,6 +56,7 @@ const recipes: Record<
     image: string
     description: string
     output?: string
+    yield?: number
     resources: Resources
   }
 > = {
@@ -74,20 +78,60 @@ const recipes: Record<
     },
   },
   ammo556: {
-    name: 'Ammo 5.56x45',
+    name: '5.56x45',
     unit: 'peluru',
     accent: 'ammo',
     image: `${import.meta.env.BASE_URL}resource/ammo-556.svg`,
-    description: '1 craft clip menghasilkan 45 peluru',
-    output: '45 peluru per craft',
+    description: '1 craft clip menghasilkan 120 peluru',
+    output: '120 peluru per craft',
+    yield: 120,
     resources: {
-      'Gun Powder': 1,
-      'Blueprint 5_56x45MM': 1,
+      'Blueprint 5_56X45MM': 1,
       Gold: 5,
+      Silver: 5,
+      Iron: 5,
+      Copper: 5,
       'Olahan Kayu': 8,
-      Silver: 15,
-      Iron: 15,
-      Copper: 20,
+      'Santa Muerte': 1,
+      'Gun Powder': 1,
+    },
+  },
+  ammo9mm: {
+    name: '9mm',
+    unit: 'peluru',
+    accent: 'ammo',
+    image: `${import.meta.env.BASE_URL}resource/ammo-9mm.svg`,
+    description: '1 craft clip menghasilkan 50 peluru',
+    output: '50 peluru per craft',
+    yield: 50,
+    resources: {
+      'Blueprint 9MM': 1,
+      Gold: 1,
+      Silver: 3,
+      Iron: 3,
+      Copper: 5,
+      'Olahan Kayu': 1,
+      'Santa Muerte': 1,
+      'Gun Powder': 1,
+    },
+  },
+  ammo44: {
+    name: '.44 Magnum',
+    unit: 'peluru',
+    accent: 'ammo',
+    image: `${import.meta.env.BASE_URL}resource/ammo-44.svg`,
+    description: '1 craft clip menghasilkan 50 peluru',
+    output: '50 peluru per craft',
+    yield: 50,
+    resources: {
+      'Blueprint 44_Magnum': 1,
+      Gold: 2,
+      Silver: 3,
+      Iron: 5,
+      Copper: 8,
+      'Olahan Kayu': 5,
+      'Santa Muerte': 1,
+      'Gun Powder': 1,
     },
   },
 }
@@ -96,7 +140,9 @@ const base = import.meta.env.BASE_URL
 
 const resourceImages: Record<string, string> = {
   'Blueprint RAM-7': `${base}resource/blueprint.svg`,
-  'Blueprint 5_56x45MM': `${base}resource/blueprint.svg`,
+  'Blueprint 5_56X45MM': `${base}resource/blueprint.svg`,
+  'Blueprint 9MM': `${base}resource/blueprint.svg`,
+  'Blueprint 44_Magnum': `${base}resource/blueprint.svg`,
   'Gun Oil': `${base}resource/gun-oil.svg`,
   Gold: `${base}resource/gold.svg`,
   Emerald: `${base}resource/emerald.svg`,
@@ -104,6 +150,7 @@ const resourceImages: Record<string, string> = {
   Silver: `${base}resource/silver.svg`,
   'Olahan Kayu': `${base}resource/wood.svg`,
   Copper: `${base}resource/copper.svg`,
+  'Santa Muerte': `${base}resource/santa-muerte.svg`,
   'Gun Powder': `${base}resource/gun-powder.svg`,
   Iron: `${base}resource/iron.svg`,
 }
@@ -113,18 +160,18 @@ const initialLines: CraftLine[] = [
 ]
 
 function getCraftCount(line: CraftLine) {
-  if (line.itemId === 'ammo556') {
-    return Math.ceil(line.quantity / 45)
+  const recipe = recipes[line.itemId]
+  if (recipe && recipe.yield && recipe.yield > 1) {
+    return Math.ceil(line.quantity / recipe.yield)
   }
-
   return line.quantity
 }
 
 function getProducedAmount(line: CraftLine) {
-  if (line.itemId === 'ammo556') {
-    return getCraftCount(line) * 45
+  const recipe = recipes[line.itemId]
+  if (recipe && recipe.yield && recipe.yield > 1) {
+    return getCraftCount(line) * recipe.yield
   }
-
   return line.quantity
 }
 
@@ -151,9 +198,38 @@ function formatDate(value: string) {
   }).format(new Date(value))
 }
 
+type MarketTransaction = {
+  id: string
+  createdAt: string
+  type: 'purchase' | 'deposit' | 'withdraw'
+  amount: number
+  performedBy: string
+  note?: string
+  items?: { name: string; quantity: number; subtotal: number }[]
+}
+
+type MarketItem = {
+  id: string
+  name: string
+  price: number
+  stock: number
+}
+
+const marketItems: MarketItem[] = [
+  { id: 'lamp', name: 'Lamp', price: 1500, stock: 2000 },
+  { id: 'plant_pot', name: 'Plant Pot', price: 60, stock: 2000 },
+  { id: 'bibit_marijuana', name: 'Bibit Marijuana', price: 210, stock: 2000 },
+  { id: 'fertilizer', name: 'Fertilizer', price: 60, stock: 2000 },
+  { id: 'garden_pitcher', name: 'Garden Pitcher', price: 300, stock: 2000 },
+  { id: 'bagging_table', name: 'Bagging Table', price: 7500, stock: 2000 },
+]
+
 function formatResourceName(name: string) {
-  if (name === 'Blueprint 5_56x45MM') {
-    return 'Blueprint 5.56x45MM'
+  if (name === 'Blueprint 5_56X45MM') {
+    return 'Blueprint 5.56X45MM'
+  }
+  if (name === 'Blueprint 44_Magnum') {
+    return 'Blueprint 44.Magnum'
   }
   return name
 }
@@ -162,10 +238,13 @@ function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(
     sessionStorage.getItem('sotcraft_auth') === 'true'
   )
+  const [activeUser, setActiveUser] = useState<string | null>(
+    sessionStorage.getItem('sotcraft_user')
+  )
   const [passwordInput, setPasswordInput] = useState('')
   const [loginError, setLoginError] = useState(false)
 
-  const [activePage, setActivePage] = useState<'calculator' | 'history'>(
+  const [activePage, setActivePage] = useState<'calculator' | 'history' | 'market' | 'bank'>(
     'calculator',
   )
   const [lines, setLines] = useState<CraftLine[]>(initialLines)
@@ -179,7 +258,66 @@ function App() {
   // Track expanded resource panels in history
   const [expandedResources, setExpandedResources] = useState<Record<string, boolean>>({})
 
+  // Illegal Market & Bank State
+  const [marketSearch, setMarketSearch] = useState('')
+  const [marketQuantities, setMarketQuantities] = useState<Record<string, number>>({})
+  const [dmBalance, setDmBalance] = useState<number>(0)
+  const [marketTransactions, setMarketTransactions] = useState<MarketTransaction[]>([])
+  const [bankMode, setBankMode] = useState<'deposit' | 'withdraw' | null>(null)
+  const [bankAmountInput, setBankAmountInput] = useState('')
+  const [bankNoteInput, setBankNoteInput] = useState('')
+
   const sessionsRef = useRef(db ? ref(db, 'sessions') : null)
+
+  // Compute running balance history for the traffic chart
+  const balanceHistory = useMemo(() => {
+    if (marketTransactions.length === 0) return []
+    const sorted = [...marketTransactions].sort(
+      (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+    )
+    let running = 0
+    return sorted.map(tx => {
+      if (tx.type === 'deposit') running += tx.amount
+      else running -= tx.amount
+      return { createdAt: tx.createdAt, balance: Math.max(0, running), type: tx.type }
+    })
+  }, [marketTransactions])
+
+  function updateMarketQuantity(id: string, delta: number) {
+    setMarketQuantities((prev) => {
+      const currentQty = prev[id] ?? 0
+      const newQty = Math.max(0, currentQty + delta)
+      return {
+        ...prev,
+        [id]: newQty,
+      }
+    })
+  }
+
+  function resetMarketCart() {
+    setMarketQuantities({})
+  }
+
+  const filteredMarketItems = useMemo(() => {
+    return marketItems.filter((item) =>
+      item.name.toLowerCase().includes(marketSearch.toLowerCase())
+    )
+  }, [marketSearch])
+
+  const { marketCartItems, totalDirtyMoney } = useMemo(() => {
+    const cart = Object.entries(marketQuantities)
+      .filter(([, qty]) => qty > 0)
+      .map(([id, qty]) => {
+        const item = marketItems.find((i) => i.id === id)!
+        return {
+          item,
+          quantity: qty,
+          subtotal: item.price * qty,
+        }
+      })
+    const total = cart.reduce((sum, cartItem) => sum + cartItem.subtotal, 0)
+    return { marketCartItems: cart, totalDirtyMoney: total }
+  }, [marketQuantities])
 
   const resources = useMemo(() => calculateResources(lines), [lines])
   const sortedResources = useMemo(
@@ -191,6 +329,84 @@ function App() {
   const filteredSessions = sessions.filter(
     (session) => statusFilter === 'Semua' || session.status === statusFilter,
   )
+
+  async function handleBankTransaction(e: React.FormEvent) {
+    e.preventDefault()
+    if (!db) return
+    const amount = Number(bankAmountInput)
+    if (isNaN(amount) || amount <= 0) return
+
+    if (bankMode === 'withdraw' && amount > dmBalance) {
+      alert('Saldo DM tidak cukup!')
+      return
+    }
+
+    try {
+      const txRef = push(ref(db, 'market_transactions'))
+      const txId = txRef.key!
+      
+      const tx: MarketTransaction = {
+        id: txId,
+        createdAt: new Date().toISOString(),
+        type: bankMode!,
+        amount,
+        performedBy: activeUser || 'Unknown',
+        note: bankNoteInput.trim()
+      }
+
+      const updates: Record<string, any> = {
+        [`market_transactions/${txId}`]: tx,
+        'dm_balance': bankMode === 'deposit' ? dmBalance + amount : dmBalance - amount
+      }
+
+      await update(ref(db), updates)
+      
+      setBankMode(null)
+      setBankAmountInput('')
+      setBankNoteInput('')
+    } catch (err) {
+      console.error(err)
+      alert('Gagal melakukan transaksi')
+    }
+  }
+
+  async function handleCheckout() {
+    if (!db) return
+    if (totalDirtyMoney <= 0) return
+    if (totalDirtyMoney > dmBalance) {
+      alert('Saldo DM tidak cukup untuk checkout!')
+      return
+    }
+
+    try {
+      const txRef = push(ref(db, 'market_transactions'))
+      const txId = txRef.key!
+      
+      const tx: MarketTransaction = {
+        id: txId,
+        createdAt: new Date().toISOString(),
+        type: 'purchase',
+        amount: totalDirtyMoney,
+        performedBy: activeUser || 'Unknown',
+        items: marketCartItems.map(c => ({
+          name: c.item.name,
+          quantity: c.quantity,
+          subtotal: c.subtotal
+        }))
+      }
+
+      const updates: Record<string, any> = {
+        [`market_transactions/${txId}`]: tx,
+        'dm_balance': dmBalance - totalDirtyMoney
+      }
+
+      await update(ref(db), updates)
+      resetMarketCart()
+    } catch (err) {
+      console.error(err)
+      alert('Gagal checkout')
+    }
+  }
 
   // Subscribe to Firebase Realtime Database
   useEffect(() => {
@@ -213,13 +429,33 @@ function App() {
         }
         setLoading(false)
       },
-      (error) => {
-        console.error("Gagal mengambil data dari Firebase:", error)
+      (_error) => {
         setLoading(false)
       }
     )
 
-    return () => unsubscribe()
+    const dmRef = ref(db, 'dm_balance')
+    const dmUnsub = onValue(dmRef, (snapshot) => {
+      setDmBalance(snapshot.val() || 0)
+    })
+
+    const marketTxRef = ref(db, 'market_transactions')
+    const marketTxUnsub = onValue(marketTxRef, (snapshot) => {
+      const data = snapshot.val()
+      if (data) {
+        const list: MarketTransaction[] = Object.entries(data).map(([, val]) => val as MarketTransaction)
+        list.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+        setMarketTransactions(list)
+      } else {
+        setMarketTransactions([])
+      }
+    })
+
+    return () => {
+      unsubscribe()
+      dmUnsub()
+      marketTxUnsub()
+    }
   }, [])
 
   function updateLine(id: number, payload: Partial<CraftLine>) {
@@ -246,6 +482,7 @@ function App() {
         id: sessionId,
         name: sessionName.trim() || 'Crafting tanpa nama',
         createdAt: new Date().toISOString(),
+        createdBy: activeUser || 'Unknown',
         status: 'Dalam Proses',
         lines,
         resources,
@@ -358,9 +595,29 @@ function App() {
 
   function handleLogin(e: React.FormEvent) {
     e.preventDefault()
-    if (passwordInput === import.meta.env.VITE_ACCESS_PASSWORD) {
+    
+    const userListStr = import.meta.env.VITE_USER_LIST || ''
+    const users = userListStr.split(',').filter(Boolean).map((u: string) => u.split(':'))
+    const defaultPass = import.meta.env.VITE_ACCESS_PASSWORD
+    
+    let matchedUser = null
+    
+    for (const [name, pass] of users) {
+      if (passwordInput === pass) {
+        matchedUser = name
+        break
+      }
+    }
+    
+    if (!matchedUser && passwordInput === defaultPass) {
+       matchedUser = 'Boss'
+    }
+
+    if (matchedUser) {
       setIsAuthenticated(true)
       sessionStorage.setItem('sotcraft_auth', 'true')
+      sessionStorage.setItem('sotcraft_user', matchedUser)
+      setActiveUser(matchedUser)
       setLoginError(false)
     } else {
       setLoginError(true)
@@ -371,32 +628,66 @@ function App() {
   if (!isAuthenticated) {
     return (
       <main className="login-screen">
-        <div className="login-card">
-          <div className="login-header">
-            <div className="brand-mark">
-              <Shield size={32} />
+        <div className="terminal-card">
+
+          {/* ── Top status bar ── */}
+          <div className="terminal-topbar">
+            <div className="terminal-auth-label">
+              <span className="terminal-blink-dot" />
+              AUTH_REQUIRED
             </div>
-            <h1>Access Restricted</h1>
+            <div className="terminal-cid">CID: SOT-CR-001</div>
           </div>
-          <blockquote className="login-quote">
-            "If you don't have the password, you're not hot enough for this operation. Walk away."
-          </blockquote>
-          <form className="login-form" onSubmit={handleLogin}>
-            <input
-              type="password"
-              placeholder="Enter Passphrase"
-              value={passwordInput}
-              onChange={(e) => {
-                setPasswordInput(e.target.value)
-                setLoginError(false)
-              }}
-              autoFocus
-            />
-            {loginError && <p className="login-error">Passphrase incorrect.</p>}
-            <button className="primary-button" type="submit">
-              Enter Operation
+
+          {/* ── Passphrase field ── */}
+          <form className="terminal-form" onSubmit={handleLogin}>
+            <div className="terminal-field-label">
+              <span>PASSPHRASE</span>
+              <span className="terminal-redacted">REDACTED_INPUT</span>
+            </div>
+
+            <div className="terminal-input-row">
+              <span className="terminal-prompt">&gt;</span>
+              <input
+                type="password"
+                placeholder="··········"
+                value={passwordInput}
+                onChange={(e) => {
+                  setPasswordInput(e.target.value)
+                  setLoginError(false)
+                }}
+                autoFocus
+                className="terminal-input"
+                spellCheck={false}
+              />
+            </div>
+
+            {loginError && (
+              <p className="terminal-error">
+                &#x26A0; PASSPHRASE REJECTED — ACCESS DENIED
+              </p>
+            )}
+
+            <button type="submit" className="terminal-connect-btn">
+              CONNECT TO SYNDICATE &nbsp;&#x26A1;
             </button>
           </form>
+
+          {/* ── Warning footer ── */}
+          <div className="terminal-warning-block">
+            <span className="terminal-warn-icon">&#x26A0;</span>
+            <div>
+              <p className="terminal-warn-title">
+                ACCESS RESTRICTED.&nbsp;
+                <span className="terminal-warn-highlight">AUTHORIZED PERSONNEL</span>
+                &nbsp;ONLY.
+              </p>
+              <p className="terminal-warn-sub">
+                Unauthorized access attempts are logged and traced to geographical coordinates.
+              </p>
+            </div>
+          </div>
+
         </div>
       </main>
     )
@@ -425,12 +716,28 @@ function App() {
             Calculator
           </button>
           <button
+            className={activePage === 'market' ? 'nav-item active' : 'nav-item'}
+            onClick={() => setActivePage('market')}
+            type="button"
+          >
+            <Store size={18} />
+            Illegal Market
+          </button>
+          <button
             className={activePage === 'history' ? 'nav-item active' : 'nav-item'}
             onClick={() => setActivePage('history')}
             type="button"
           >
             <History size={18} />
             History
+          </button>
+          <button
+            className={activePage === 'bank' ? 'nav-item active' : 'nav-item'}
+            onClick={() => setActivePage('bank')}
+            type="button"
+          >
+            <Landmark size={18} />
+            Bank Account
           </button>
         </nav>
 
@@ -451,11 +758,24 @@ function App() {
         <header className="topbar">
           <div>
             <p className="eyebrow">Management tool</p>
-            <h2>{activePage === 'calculator' ? 'Crafting Calculator' : 'Crafting History'}</h2>
+            <h2>
+              {activePage === 'calculator'
+                ? 'Crafting Calculator'
+                : activePage === 'market'
+                ? 'Illegal Market'
+                : activePage === 'bank'
+                ? 'Bank Account'
+                : 'Crafting History'}
+            </h2>
           </div>
-          <div className="operator-chip">
-            <span className="status-dot" />
-            Mafia Crew Mode
+          <div className="profile-chip">
+            <div className="profile-avatar">
+               {activeUser ? activeUser.charAt(0).toUpperCase() : 'U'}
+            </div>
+            <div className="profile-info">
+               <strong>{activeUser || 'Unknown'}</strong>
+               <span>Logged in</span>
+            </div>
           </div>
         </header>
 
@@ -481,7 +801,7 @@ function App() {
         )}
 
         {activePage === 'calculator' ? (
-          <div className="calculator-grid">
+          <div className="calculator-grid fade-in">
             <section className="planner">
               <div className="section-heading">
                 <div>
@@ -518,7 +838,9 @@ function App() {
                               }
                             >
                               <option value="ram7">RAM-7</option>
-                              <option value="ammo556">Ammo 5.56x45</option>
+                              <option value="ammo556">5.56x45</option>
+                              <option value="ammo9mm">9mm</option>
+                              <option value="ammo44">.44 Magnum</option>
                             </select>
                           </label>
                           <label>
@@ -539,7 +861,7 @@ function App() {
                           <span>{recipe.description}</span>
                           <strong>
                             {craftCount}x craft
-                            {line.itemId === 'ammo556' ? ` -> ${produced} peluru final` : ''}
+                            {recipe.yield && recipe.yield > 1 ? ` -> ${produced} peluru final` : ''}
                           </strong>
                         </div>
                       </div>
@@ -627,8 +949,279 @@ function App() {
               </section>
             </aside>
           </div>
+        ) : activePage === 'market' ? (
+          <div className="market-layout fade-in">
+            <div className="market-grid">
+              <section className="market-list">
+              <div className="search-bar">
+                <Search size={18} />
+                <input
+                  type="text"
+                  placeholder="Cari item illegal market..."
+                  value={marketSearch}
+                  onChange={(e) => setMarketSearch(e.target.value)}
+                />
+              </div>
+              <div className="market-items">
+                {filteredMarketItems.map((item) => (
+                  <article className="market-list-card" key={item.id}>
+                    <div className="market-item-header">
+                      <h3>{item.name}</h3>
+                    </div>
+                    <div className="market-item-actions">
+                      <span className="price">{item.price} DM</span>
+                      <div className="quantity-selector">
+                        <button onClick={() => updateMarketQuantity(item.id, -1)} type="button" aria-label="Kurangi">-</button>
+                        <span>{marketQuantities[item.id] ?? 0}</span>
+                        <button onClick={() => updateMarketQuantity(item.id, 1)} type="button" aria-label="Tambah">+</button>
+                      </div>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            </section>
+
+            <aside className="market-cart">
+              <div className="cart-header">
+                <h3>Cart Total</h3>
+                <button className="text-button text-muted" onClick={resetMarketCart} type="button">
+                  Reset
+                </button>
+              </div>
+
+              <div className="dirty-money-badge">
+                <span>Total Dirty Money</span>
+                <h2>{totalDirtyMoney.toLocaleString('id-ID')} DM</h2>
+              </div>
+
+              {/* DM Balance indicator */}
+              <div className="dm-balance-indicator">
+                <span>Saldo DM</span>
+                <span className={totalDirtyMoney > dmBalance ? 'balance-insufficient' : 'balance-ok'}>
+                  {dmBalance.toLocaleString('id-ID')} DM
+                </span>
+              </div>
+
+              <div className="cart-list">
+                {marketCartItems.length === 0 && (
+                  <p className="empty-cart">Belum ada item yang dipilih</p>
+                )}
+                {marketCartItems.map((cartItem) => (
+                  <div className="cart-row" key={cartItem.item.id}>
+                    <div className="cart-row-info">
+                      <strong>{cartItem.item.name}</strong>
+                      <span className="cart-row-qty">{cartItem.quantity}x @ {cartItem.item.price}</span>
+                    </div>
+                    <strong>{cartItem.subtotal.toLocaleString('id-ID')}</strong>
+                  </div>
+                ))}
+              </div>
+              <button 
+                className="checkout-button primary-button" 
+                disabled={marketCartItems.length === 0 || totalDirtyMoney > dmBalance}
+                onClick={handleCheckout}
+                style={{ width: '100%', marginTop: '20px' }}
+              >
+                Checkout &amp; Bayar
+              </button>
+            </aside>
+          </div>{/* end market-grid */}
+
+          {/* --- PURCHASE HISTORY --- */}
+          {(() => {
+            const purchases = marketTransactions.filter(tx => tx.type === 'purchase')
+            return (
+              <section className="purchase-history fade-in">
+                <div className="purchase-history-header">
+                  <h3>🛒 Riwayat Pembelian</h3>
+                  <span className="chart-label">{purchases.length} transaksi</span>
+                </div>
+                {purchases.length === 0 ? (
+                  <p className="empty-tx">Belum ada pembelian</p>
+                ) : (
+                  <div className="purchase-list">
+                    {purchases.map(tx => (
+                      <div className="purchase-row" key={tx.id}>
+                        <div className="purchase-row-left">
+                          <div className="purchase-items-inline">
+                            {tx.items?.map((it, i) => (
+                              <span key={i} className="purchase-item-tag">
+                                {it.name} <strong>×{it.quantity}</strong>
+                              </span>
+                            ))}
+                          </div>
+                          <div className="purchase-meta">
+                            <span>{new Date(tx.createdAt).toLocaleString('id-ID')}</span>
+                            <span>•</span>
+                            <span>{tx.performedBy}</span>
+                          </div>
+                        </div>
+                        <span className="purchase-amount">
+                          -{tx.amount.toLocaleString('id-ID')} DM
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </section>
+            )
+          })()}
+          </div>
+        ) : activePage === 'bank' ? (
+          <div className="bank-page fade-in">
+            {/* --- BALANCE HERO --- */}
+            <section className="bank-hero">
+              <p className="eyebrow">Dirty Money Reserve</p>
+              <h2 className="bank-hero-balance">{dmBalance.toLocaleString('id-ID')} DM</h2>
+              <div className="bank-actions">
+                <button className="primary-button" onClick={() => setBankMode(bankMode === 'deposit' ? null : 'deposit')}>
+                  DEPOSIT
+                </button>
+                <button className="danger-button" onClick={() => setBankMode(bankMode === 'withdraw' ? null : 'withdraw')}>
+                  WITHDRAW
+                </button>
+              </div>
+
+              {bankMode && (
+                <form className="bank-form fade-in" onSubmit={handleBankTransaction}>
+                  <div className="form-group">
+                    <label>{bankMode === 'deposit' ? 'Jumlah Deposit (DM)' : 'Jumlah Withdraw (DM)'}</label>
+                    <input 
+                      type="number" 
+                      min="1" 
+                      value={bankAmountInput} 
+                      onChange={e => setBankAmountInput(e.target.value)} 
+                      placeholder="0"
+                      required 
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>Catatan (Opsional)</label>
+                    <input 
+                      type="text" 
+                      value={bankNoteInput} 
+                      onChange={e => setBankNoteInput(e.target.value)} 
+                      placeholder="e.g. Setoran uang hasil perampokan" 
+                    />
+                  </div>
+                  <button type="submit" className={bankMode === 'deposit' ? 'primary-button' : 'danger-button'} style={{ marginTop: '8px' }}>
+                    Konfirmasi {bankMode === 'deposit' ? 'Deposit' : 'Withdraw'}
+                  </button>
+                </form>
+              )}
+            </section>
+
+            {/* --- BALANCE TRAFFIC CHART --- */}
+            {balanceHistory.length > 0 && (() => {
+              const W = 800, H = 160, PAD = 20
+              const maxBal = Math.max(...balanceHistory.map(p => p.balance), 1)
+              const pts = balanceHistory.map((p, i) => {
+                const x = PAD + (i / Math.max(balanceHistory.length - 1, 1)) * (W - PAD * 2)
+                const y = H - PAD - (p.balance / maxBal) * (H - PAD * 2)
+                return { x, y, ...p }
+              })
+              const polyline = pts.map(p => `${p.x},${p.y}`).join(' ')
+              const areaPath = `M${pts[0].x},${H - PAD} ` +
+                pts.map(p => `L${p.x},${p.y}`).join(' ') +
+                ` L${pts[pts.length - 1].x},${H - PAD} Z`
+              return (
+                <section className="bank-chart-section">
+                  <div className="bank-chart-header">
+                    <h3>📈 Balance Traffic</h3>
+                    <span className="chart-label">{balanceHistory.length} transaksi</span>
+                  </div>
+                  <div className="bank-chart-wrap">
+                    <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" className="bank-chart-svg">
+                      <defs>
+                        <linearGradient id="balGrad" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor="#d7a83f" stopOpacity="0.35" />
+                          <stop offset="100%" stopColor="#d7a83f" stopOpacity="0.01" />
+                        </linearGradient>
+                        <filter id="glow">
+                          <feGaussianBlur stdDeviation="2" result="blur" />
+                          <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
+                        </filter>
+                      </defs>
+                      {/* Grid lines */}
+                      {[0.25, 0.5, 0.75, 1].map(frac => (
+                        <line
+                          key={frac}
+                          x1={PAD} y1={H - PAD - frac * (H - PAD * 2)}
+                          x2={W - PAD} y2={H - PAD - frac * (H - PAD * 2)}
+                          stroke="rgba(255,255,255,0.05)" strokeWidth="1"
+                        />
+                      ))}
+                      {/* Area fill */}
+                      <path d={areaPath} fill="url(#balGrad)" />
+                      {/* Line */}
+                      <polyline
+                        points={polyline}
+                        fill="none"
+                        stroke="#d7a83f"
+                        strokeWidth="2"
+                        strokeLinejoin="round"
+                        filter="url(#glow)"
+                      />
+                      {/* Data dots */}
+                      {pts.map((p, i) => (
+                        <circle
+                          key={i}
+                          cx={p.x} cy={p.y} r="3.5"
+                          fill={p.type === 'deposit' ? '#34d399' : '#f87171'}
+                          stroke="#0a0f16" strokeWidth="1.5"
+                        />
+                      ))}
+                    </svg>
+                    {/* Y axis labels */}
+                    <div className="chart-y-labels">
+                      <span>{maxBal.toLocaleString('id-ID')}</span>
+                      <span>{Math.round(maxBal * 0.5).toLocaleString('id-ID')}</span>
+                      <span>0</span>
+                    </div>
+                  </div>
+                  {/* Legend */}
+                  <div className="chart-legend">
+                    <span><span className="legend-dot deposit" />Deposit</span>
+                    <span><span className="legend-dot withdraw" />Withdraw / Purchase</span>
+                  </div>
+                </section>
+              )
+            })()}
+
+            {/* --- TRANSACTION LEDGER --- */}
+            <section className="transaction-history">
+              <h3>📋 Ledger — Riwayat Transaksi</h3>
+              <div className="tx-list">
+                {marketTransactions.map(tx => (
+                  <div className="tx-card" key={tx.id}>
+                    <div className="tx-header">
+                      <span className={`tx-type ${tx.type}`}>{tx.type.toUpperCase()}</span>
+                      <span className={`tx-amount ${tx.type}`}>
+                        {tx.type === 'deposit' ? '+' : '-'}{tx.amount.toLocaleString('id-ID')} DM
+                      </span>
+                    </div>
+                    <div className="tx-meta">
+                      <span>{new Date(tx.createdAt).toLocaleString('id-ID')}</span>
+                      <span>•</span>
+                      <span>{tx.performedBy}</span>
+                    </div>
+                    {tx.note && <div className="tx-note">"{tx.note}"</div>}
+                    {tx.items && (
+                      <div className="tx-items">
+                        {tx.items.map((it, i) => (
+                          <span key={i}>{it.name} x{it.quantity}</span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ))}
+                {marketTransactions.length === 0 && <p className="empty-tx">Belum ada transaksi</p>}
+              </div>
+            </section>
+          </div>
+
         ) : (
-          <section className="history-page">
+          <section className="history-page fade-in">
             <div className="history-tools">
               <div className="search-box">
                 <Search size={18} />
@@ -674,7 +1267,10 @@ function App() {
                   <article className={isLocked ? 'session-card locked' : 'session-card'} key={session.id}>
                     <div className="session-head">
                       <div>
-                        <p className="eyebrow">{formatDate(session.createdAt)}</p>
+                        <p className="eyebrow">
+                          {formatDate(session.createdAt)}
+                          {session.createdBy && ` • By: ${session.createdBy}`}
+                        </p>
                         <h3>{session.name}</h3>
                       </div>
                       <span className={`status-pill ${session.status.toLowerCase().replaceAll(' ', '-')}`}>
