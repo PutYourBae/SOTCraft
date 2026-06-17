@@ -294,6 +294,13 @@ function App() {
     })
   }
 
+  function setMarketItemQuantity(id: string, qty: number) {
+    setMarketQuantities((prev) => ({
+      ...prev,
+      [id]: Math.max(0, qty),
+    }))
+  }
+
   function resetMarketCart() {
     setMarketQuantities({})
   }
@@ -669,7 +676,7 @@ function App() {
             )}
 
             <button type="submit" className="terminal-connect-btn">
-              CONNECT TO SYNDICATE &nbsp;&#x26A1;
+              AUTHENTICATE &nbsp;&#x26A1;
             </button>
           </form>
 
@@ -972,7 +979,12 @@ function App() {
                       <span className="price">{item.price} DM</span>
                       <div className="quantity-selector">
                         <button onClick={() => updateMarketQuantity(item.id, -1)} type="button" aria-label="Kurangi">-</button>
-                        <span>{marketQuantities[item.id] ?? 0}</span>
+                        <input 
+                          type="number" 
+                          min="0"
+                          value={marketQuantities[item.id] ?? 0}
+                          onChange={(e) => setMarketItemQuantity(item.id, parseInt(e.target.value) || 0)}
+                        />
                         <button onClick={() => updateMarketQuantity(item.id, 1)} type="button" aria-label="Tambah">+</button>
                       </div>
                     </div>
