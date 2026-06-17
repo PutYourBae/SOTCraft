@@ -14,7 +14,7 @@
   --success-glow: rgba(88, 214, 141, 0.4);
   --danger: #f87171;
   --danger-glow: rgba(248, 113, 113, 0.4);
-  --glass-blur: blur(12px);
+  --glass-blur: blur(8px); /* Reduced for performance */
   --shadow-glow: 0 0 20px var(--accent-glow);
 }
 
@@ -483,6 +483,13 @@ input, select, textarea {
 
 input, select {
   min-height: 48px;
+  cursor: pointer;
+}
+
+select option {
+  background-color: var(--bg-main);
+  color: var(--text-strong);
+  padding: 10px;
 }
 
 textarea {
