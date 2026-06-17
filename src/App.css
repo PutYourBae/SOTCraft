@@ -14,7 +14,7 @@
   --success-glow: rgba(88, 214, 141, 0.4);
   --danger: #f87171;
   --danger-glow: rgba(248, 113, 113, 0.4);
-  --glass-blur: blur(8px); /* Reduced for performance */
+  --glass-blur: none; /* Disabled completely to fix frame drops */
   --shadow-glow: 0 0 20px var(--accent-glow);
 }
 
@@ -108,6 +108,8 @@ body::after {
   min-height: 100vh;
   display: grid;
   grid-template-columns: 280px minmax(0, 1fr);
+  transform: translateZ(0); /* Hardware acceleration */
+  will-change: transform;
 }
 
 .sidebar {
