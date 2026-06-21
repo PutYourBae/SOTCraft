@@ -104,9 +104,9 @@ const recipes: Record<
     unit: 'peluru',
     accent: 'ammo',
     image: `${import.meta.env.BASE_URL}resource/ammo-44.svg`,
-    description: '1 craft clip menghasilkan 50 peluru',
-    output: '50 peluru per craft',
-    yield: 50,
+    description: '1 craft clip menghasilkan 120 peluru',
+    output: '120 peluru per craft',
+    yield: 120,
     resources: {
       'Blueprint 44_Magnum': 1,
       Gold: 2,
@@ -335,7 +335,7 @@ function App() {
     try {
       const txRef = push(ref(db, 'market_transactions'))
       const txId = txRef.key!
-      
+
       const tx: MarketTransaction = {
         id: txId,
         createdAt: new Date().toISOString(),
@@ -351,7 +351,7 @@ function App() {
       }
 
       await update(ref(db), updates)
-      
+
       setBankMode(null)
       setBankAmountInput('')
       setBankNoteInput('')
@@ -372,7 +372,7 @@ function App() {
     try {
       const txRef = push(ref(db, 'market_transactions'))
       const txId = txRef.key!
-      
+
       const tx: MarketTransaction = {
         id: txId,
         createdAt: new Date().toISOString(),
@@ -586,22 +586,22 @@ function App() {
 
   function handleLogin(e: React.FormEvent) {
     e.preventDefault()
-    
+
     const userListStr = import.meta.env.VITE_USER_LIST || ''
     const users = userListStr.split(',').filter(Boolean).map((u: string) => u.split(':'))
     const defaultPass = import.meta.env.VITE_ACCESS_PASSWORD
-    
+
     let matchedUser = null
-    
+
     for (const [name, pass] of users) {
       if (passwordInput === pass) {
         matchedUser = name
         break
       }
     }
-    
+
     if (!matchedUser && passwordInput === defaultPass) {
-       matchedUser = 'Boss'
+      matchedUser = 'Boss'
     }
 
     if (matchedUser) {
@@ -753,19 +753,19 @@ function App() {
               {activePage === 'calculator'
                 ? 'Crafting Calculator'
                 : activePage === 'market'
-                ? 'Illegal Market'
-                : activePage === 'bank'
-                ? 'Bank Account'
-                : 'Crafting History'}
+                  ? 'Illegal Market'
+                  : activePage === 'bank'
+                    ? 'Bank Account'
+                    : 'Crafting History'}
             </h2>
           </div>
           <div className="profile-chip">
             <div className="profile-avatar">
-               {activeUser ? activeUser.charAt(0).toUpperCase() : 'U'}
+              {activeUser ? activeUser.charAt(0).toUpperCase() : 'U'}
             </div>
             <div className="profile-info">
-               <strong>{activeUser || 'Unknown'}</strong>
-               <span>Logged in</span>
+              <strong>{activeUser || 'Unknown'}</strong>
+              <span>Logged in</span>
             </div>
           </div>
         </header>
@@ -918,8 +918,8 @@ function App() {
                   {sortedResources.map(([name, amount], index) => {
                     const maxAmount = sortedResources[0]?.[1] ?? 1
                     return (
-                        <div className="resource-row" key={name}>
-                          <div>
+                      <div className="resource-row" key={name}>
+                        <div>
                           <span className="resource-name">
                             <img src={resourceImages[name]} alt="" />
                             {formatResourceName(name)}
@@ -944,124 +944,124 @@ function App() {
           <div className="market-layout fade-in">
             <div className="market-grid">
               <section className="market-list">
-              <div className="search-bar">
-                <Search size={18} />
-                <input
-                  type="text"
-                  placeholder="Cari item illegal market..."
-                  value={marketSearch}
-                  onChange={(e) => setMarketSearch(e.target.value)}
-                />
-              </div>
-              <div className="market-items">
-                {filteredMarketItems.map((item) => (
-                  <article className="market-list-card" key={item.id}>
-                    <div className="market-item-header">
-                      <h3>{item.name}</h3>
-                    </div>
-                    <div className="market-item-actions">
-                      <span className="price">{item.price} DM</span>
-                      <div className="quantity-selector">
-                        <button onClick={() => updateMarketQuantity(item.id, -1)} type="button" aria-label="Kurangi">-</button>
-                        <input 
-                          type="number" 
-                          min="0"
-                          value={marketQuantities[item.id] ?? 0}
-                          onChange={(e) => setMarketItemQuantity(item.id, parseInt(e.target.value) || 0)}
-                        />
-                        <button onClick={() => updateMarketQuantity(item.id, 1)} type="button" aria-label="Tambah">+</button>
-                      </div>
-                    </div>
-                  </article>
-                ))}
-              </div>
-            </section>
-
-            <aside className="market-cart">
-              <div className="cart-header">
-                <h3>Cart Total</h3>
-                <button className="text-button text-muted" onClick={resetMarketCart} type="button">
-                  Reset
-                </button>
-              </div>
-
-              <div className="dirty-money-badge">
-                <span>Total Dirty Money</span>
-                <h2>{totalDirtyMoney.toLocaleString('id-ID')} DM</h2>
-              </div>
-
-              {/* DM Balance indicator */}
-              <div className="dm-balance-indicator">
-                <span>Saldo DM</span>
-                <span className={totalDirtyMoney > dmBalance ? 'balance-insufficient' : 'balance-ok'}>
-                  {dmBalance.toLocaleString('id-ID')} DM
-                </span>
-              </div>
-
-              <div className="cart-list">
-                {marketCartItems.length === 0 && (
-                  <p className="empty-cart">Belum ada item yang dipilih</p>
-                )}
-                {marketCartItems.map((cartItem) => (
-                  <div className="cart-row" key={cartItem.item.id}>
-                    <div className="cart-row-info">
-                      <strong>{cartItem.item.name}</strong>
-                      <span className="cart-row-qty">{cartItem.quantity}x @ {cartItem.item.price}</span>
-                    </div>
-                    <strong>{cartItem.subtotal.toLocaleString('id-ID')}</strong>
-                  </div>
-                ))}
-              </div>
-              <button 
-                className="checkout-button primary-button" 
-                disabled={marketCartItems.length === 0 || totalDirtyMoney > dmBalance}
-                onClick={handleCheckout}
-                style={{ width: '100%', marginTop: '20px' }}
-              >
-                Checkout &amp; Bayar
-              </button>
-            </aside>
-          </div>{/* end market-grid */}
-
-          {/* --- PURCHASE HISTORY --- */}
-          {(() => {
-            const purchases = marketTransactions.filter(tx => tx.type === 'purchase')
-            return (
-              <section className="purchase-history fade-in">
-                <div className="purchase-history-header">
-                  <h3>🛒 Riwayat Pembelian</h3>
-                  <span className="chart-label">{purchases.length} transaksi</span>
+                <div className="search-bar">
+                  <Search size={18} />
+                  <input
+                    type="text"
+                    placeholder="Cari item illegal market..."
+                    value={marketSearch}
+                    onChange={(e) => setMarketSearch(e.target.value)}
+                  />
                 </div>
-                {purchases.length === 0 ? (
-                  <p className="empty-tx">Belum ada pembelian</p>
-                ) : (
-                  <div className="purchase-list">
-                    {purchases.map(tx => (
-                      <div className="purchase-row" key={tx.id}>
-                        <div className="purchase-row-left">
-                          <div className="purchase-items-inline">
-                            {tx.items?.map((it, i) => (
-                              <span key={i} className="purchase-item-tag">
-                                {it.name} <strong>×{it.quantity}</strong>
-                              </span>
-                            ))}
-                          </div>
-                          <div className="purchase-meta">
-                            <span>{new Date(tx.createdAt).toLocaleString('id-ID')}</span>
-                            <span>•</span>
-                            <span>{tx.performedBy}</span>
-                          </div>
-                        </div>
-                        <span className="purchase-amount">
-                          -{tx.amount.toLocaleString('id-ID')} DM
-                        </span>
+                <div className="market-items">
+                  {filteredMarketItems.map((item) => (
+                    <article className="market-list-card" key={item.id}>
+                      <div className="market-item-header">
+                        <h3>{item.name}</h3>
                       </div>
-                    ))}
-                  </div>
-                )}
+                      <div className="market-item-actions">
+                        <span className="price">{item.price} DM</span>
+                        <div className="quantity-selector">
+                          <button onClick={() => updateMarketQuantity(item.id, -1)} type="button" aria-label="Kurangi">-</button>
+                          <input
+                            type="number"
+                            min="0"
+                            value={marketQuantities[item.id] ?? 0}
+                            onChange={(e) => setMarketItemQuantity(item.id, parseInt(e.target.value) || 0)}
+                          />
+                          <button onClick={() => updateMarketQuantity(item.id, 1)} type="button" aria-label="Tambah">+</button>
+                        </div>
+                      </div>
+                    </article>
+                  ))}
+                </div>
               </section>
-            )
-          })()}
+
+              <aside className="market-cart">
+                <div className="cart-header">
+                  <h3>Cart Total</h3>
+                  <button className="text-button text-muted" onClick={resetMarketCart} type="button">
+                    Reset
+                  </button>
+                </div>
+
+                <div className="dirty-money-badge">
+                  <span>Total Dirty Money</span>
+                  <h2>{totalDirtyMoney.toLocaleString('id-ID')} DM</h2>
+                </div>
+
+                {/* DM Balance indicator */}
+                <div className="dm-balance-indicator">
+                  <span>Saldo DM</span>
+                  <span className={totalDirtyMoney > dmBalance ? 'balance-insufficient' : 'balance-ok'}>
+                    {dmBalance.toLocaleString('id-ID')} DM
+                  </span>
+                </div>
+
+                <div className="cart-list">
+                  {marketCartItems.length === 0 && (
+                    <p className="empty-cart">Belum ada item yang dipilih</p>
+                  )}
+                  {marketCartItems.map((cartItem) => (
+                    <div className="cart-row" key={cartItem.item.id}>
+                      <div className="cart-row-info">
+                        <strong>{cartItem.item.name}</strong>
+                        <span className="cart-row-qty">{cartItem.quantity}x @ {cartItem.item.price}</span>
+                      </div>
+                      <strong>{cartItem.subtotal.toLocaleString('id-ID')}</strong>
+                    </div>
+                  ))}
+                </div>
+                <button
+                  className="checkout-button primary-button"
+                  disabled={marketCartItems.length === 0 || totalDirtyMoney > dmBalance}
+                  onClick={handleCheckout}
+                  style={{ width: '100%', marginTop: '20px' }}
+                >
+                  Checkout &amp; Bayar
+                </button>
+              </aside>
+            </div>{/* end market-grid */}
+
+            {/* --- PURCHASE HISTORY --- */}
+            {(() => {
+              const purchases = marketTransactions.filter(tx => tx.type === 'purchase')
+              return (
+                <section className="purchase-history fade-in">
+                  <div className="purchase-history-header">
+                    <h3>🛒 Riwayat Pembelian</h3>
+                    <span className="chart-label">{purchases.length} transaksi</span>
+                  </div>
+                  {purchases.length === 0 ? (
+                    <p className="empty-tx">Belum ada pembelian</p>
+                  ) : (
+                    <div className="purchase-list">
+                      {purchases.map(tx => (
+                        <div className="purchase-row" key={tx.id}>
+                          <div className="purchase-row-left">
+                            <div className="purchase-items-inline">
+                              {tx.items?.map((it, i) => (
+                                <span key={i} className="purchase-item-tag">
+                                  {it.name} <strong>×{it.quantity}</strong>
+                                </span>
+                              ))}
+                            </div>
+                            <div className="purchase-meta">
+                              <span>{new Date(tx.createdAt).toLocaleString('id-ID')}</span>
+                              <span>•</span>
+                              <span>{tx.performedBy}</span>
+                            </div>
+                          </div>
+                          <span className="purchase-amount">
+                            -{tx.amount.toLocaleString('id-ID')} DM
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </section>
+              )
+            })()}
           </div>
         ) : activePage === 'bank' ? (
           <div className="bank-page fade-in">
@@ -1082,22 +1082,22 @@ function App() {
                 <form className="bank-form fade-in" onSubmit={handleBankTransaction}>
                   <div className="form-group">
                     <label>{bankMode === 'deposit' ? 'Jumlah Deposit (DM)' : 'Jumlah Withdraw (DM)'}</label>
-                    <input 
-                      type="number" 
-                      min="1" 
-                      value={bankAmountInput} 
-                      onChange={e => setBankAmountInput(e.target.value)} 
+                    <input
+                      type="number"
+                      min="1"
+                      value={bankAmountInput}
+                      onChange={e => setBankAmountInput(e.target.value)}
                       placeholder="0"
-                      required 
+                      required
                     />
                   </div>
                   <div className="form-group">
                     <label>Catatan (Opsional)</label>
-                    <input 
-                      type="text" 
-                      value={bankNoteInput} 
-                      onChange={e => setBankNoteInput(e.target.value)} 
-                      placeholder="e.g. Setoran uang hasil perampokan" 
+                    <input
+                      type="text"
+                      value={bankNoteInput}
+                      onChange={e => setBankNoteInput(e.target.value)}
+                      placeholder="e.g. Setoran uang hasil perampokan"
                     />
                   </div>
                   <button type="submit" className={bankMode === 'deposit' ? 'primary-button' : 'danger-button'} style={{ marginTop: '8px' }}>
@@ -1260,162 +1260,162 @@ function App() {
                   const PREVIEW_COUNT = 6
 
                   return (
-                  <article className={isLocked ? 'session-card locked' : 'session-card'} key={session.id}>
-                    <div className="session-head">
-                      <div>
-                        <p className="eyebrow">
-                          {formatDate(session.createdAt)}
-                          {session.createdBy && ` • By: ${session.createdBy}`}
-                        </p>
-                        <h3>{session.name}</h3>
-                      </div>
-                      <span className={`status-pill ${session.status.toLowerCase().replaceAll(' ', '-')}`}>
-                        {session.status === 'Selesai' && <CheckCircle2 size={15} />}
-                        {session.status === 'Dalam Proses' && <ClipboardList size={15} />}
-                        {session.status === 'Dibatalkan' && <XCircle size={15} />}
-                        {session.status}
-                      </span>
-                    </div>
-
-                    <div className="session-items">
-                      {session.lines.map((line) => (
-                        <span key={line.id}>
-                          <img src={recipes[line.itemId].image} alt="" />
-                          {recipes[line.itemId].name}: {line.quantity} {recipes[line.itemId].unit}
+                    <article className={isLocked ? 'session-card locked' : 'session-card'} key={session.id}>
+                      <div className="session-head">
+                        <div>
+                          <p className="eyebrow">
+                            {formatDate(session.createdAt)}
+                            {session.createdBy && ` • By: ${session.createdBy}`}
+                          </p>
+                          <h3>{session.name}</h3>
+                        </div>
+                        <span className={`status-pill ${session.status.toLowerCase().replaceAll(' ', '-')}`}>
+                          {session.status === 'Selesai' && <CheckCircle2 size={15} />}
+                          {session.status === 'Dalam Proses' && <ClipboardList size={15} />}
+                          {session.status === 'Dibatalkan' && <XCircle size={15} />}
+                          {session.status}
                         </span>
-                      ))}
-                    </div>
-
-                    {/* Full Resource Summary — same style as calculator */}
-                    <div className="session-resource-summary">
-                      <div className="session-resource-header">
-                        <span className="session-resource-title">
-                          <SlidersHorizontal size={14} />
-                          Resource Summary
-                        </span>
-                        {sortedSessionResources.length > PREVIEW_COUNT && (
-                          <button
-                            className="expand-toggle"
-                            type="button"
-                            onClick={() => toggleResourceExpand(session.id)}
-                          >
-                            {isExpanded
-                              ? `Sembunyikan`
-                              : `+${sortedSessionResources.length - PREVIEW_COUNT} lainnya`}
-                          </button>
-                        )}
                       </div>
-                      <div className="resource-list compact">
-                        {(isExpanded ? sortedSessionResources : sortedSessionResources.slice(0, PREVIEW_COUNT)).map(([name, amount], index) => (
-                          <div className="resource-row" key={name}>
-                            <div>
-                              <span className="resource-name">
-                                <img src={resourceImages[name]} alt="" />
-                                {formatResourceName(name)}
-                              </span>
-                              <strong>{amount.toLocaleString('id-ID')}</strong>
-                            </div>
-                            <div className="bar-track">
-                              <span
-                                className="bar-fill"
-                                style={{ width: `${Math.max(10, (amount / maxSessionResource) * 100)}%` }}
-                              />
-                            </div>
-                            {index === 0 && <em>Top priority</em>}
-                          </div>
+
+                      <div className="session-items">
+                        {session.lines.map((line) => (
+                          <span key={line.id}>
+                            <img src={recipes[line.itemId].image} alt="" />
+                            {recipes[line.itemId].name}: {line.quantity} {recipes[line.itemId].unit}
+                          </span>
                         ))}
                       </div>
-                    </div>
 
-                    <div className="session-actions">
-                      {(['Dalam Proses', 'Selesai', 'Dibatalkan'] as Status[]).map((status) => (
-                        <button
-                          className={session.status === status ? 'small-button active' : 'small-button'}
-                          key={status}
-                          onClick={() => {
-                            if (status !== 'Dalam Proses') {
-                              startFinalization(session, status)
+                      {/* Full Resource Summary — same style as calculator */}
+                      <div className="session-resource-summary">
+                        <div className="session-resource-header">
+                          <span className="session-resource-title">
+                            <SlidersHorizontal size={14} />
+                            Resource Summary
+                          </span>
+                          {sortedSessionResources.length > PREVIEW_COUNT && (
+                            <button
+                              className="expand-toggle"
+                              type="button"
+                              onClick={() => toggleResourceExpand(session.id)}
+                            >
+                              {isExpanded
+                                ? `Sembunyikan`
+                                : `+${sortedSessionResources.length - PREVIEW_COUNT} lainnya`}
+                            </button>
+                          )}
+                        </div>
+                        <div className="resource-list compact">
+                          {(isExpanded ? sortedSessionResources : sortedSessionResources.slice(0, PREVIEW_COUNT)).map(([name, amount], index) => (
+                            <div className="resource-row" key={name}>
+                              <div>
+                                <span className="resource-name">
+                                  <img src={resourceImages[name]} alt="" />
+                                  {formatResourceName(name)}
+                                </span>
+                                <strong>{amount.toLocaleString('id-ID')}</strong>
+                              </div>
+                              <div className="bar-track">
+                                <span
+                                  className="bar-fill"
+                                  style={{ width: `${Math.max(10, (amount / maxSessionResource) * 100)}%` }}
+                                />
+                              </div>
+                              {index === 0 && <em>Top priority</em>}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="session-actions">
+                        {(['Dalam Proses', 'Selesai', 'Dibatalkan'] as Status[]).map((status) => (
+                          <button
+                            className={session.status === status ? 'small-button active' : 'small-button'}
+                            key={status}
+                            onClick={() => {
+                              if (status !== 'Dalam Proses') {
+                                startFinalization(session, status)
+                              }
+                            }}
+                            type="button"
+                            disabled={isLocked || session.status === status}
+                          >
+                            {status}
+                          </button>
+                        ))}
+                      </div>
+
+                      {pending?.status === 'Selesai' && (
+                        <div className="confirm-panel">
+                          <div>
+                            <strong>Konfirmasi selesai</strong>
+                            <p>
+                              Setelah dikonfirmasi, status session ini akan terkunci
+                              dan tidak bisa diganti lagi.
+                            </p>
+                          </div>
+                          <div className="confirm-actions">
+                            <button
+                              className="small-button"
+                              onClick={() => cancelFinalization(session.id)}
+                              type="button"
+                            >
+                              Batal
+                            </button>
+                            <button
+                              className="small-button active"
+                              onClick={() => confirmFinalization(session.id)}
+                              type="button"
+                            >
+                              Konfirmasi Selesai
+                            </button>
+                          </div>
+                        </div>
+                      )}
+
+                      {(pending?.status === 'Dibatalkan' || session.status === 'Dibatalkan') && (
+                        <label className="cancel-note">
+                          {isLocked ? 'Keterangan pembatalan' : 'Keterangan sebelum cancel'}
+                          <textarea
+                            value={cancelNote}
+                            onChange={(event) =>
+                              updatePendingCancelNote(session.id, event.target.value)
                             }
-                          }}
-                          type="button"
-                          disabled={isLocked || session.status === status}
-                        >
-                          {status}
-                        </button>
-                      ))}
-                    </div>
+                            readOnly={isLocked}
+                            placeholder="Contoh: bahan belum lengkap, blueprint dipakai batch lain, atau order dibatalkan."
+                          />
+                        </label>
+                      )}
 
-                    {pending?.status === 'Selesai' && (
-                      <div className="confirm-panel">
-                        <div>
-                          <strong>Konfirmasi selesai</strong>
-                          <p>
-                            Setelah dikonfirmasi, status session ini akan terkunci
-                            dan tidak bisa diganti lagi.
-                          </p>
+                      {pending?.status === 'Dibatalkan' && (
+                        <div className="confirm-panel">
+                          <div>
+                            <strong>Konfirmasi cancel</strong>
+                            <p>
+                              Catatan wajib diisi. Setelah dikonfirmasi, status akan
+                              terkunci sebagai dibatalkan.
+                            </p>
+                          </div>
+                          <div className="confirm-actions">
+                            <button
+                              className="small-button"
+                              onClick={() => cancelFinalization(session.id)}
+                              type="button"
+                            >
+                              Batal
+                            </button>
+                            <button
+                              className="small-button active"
+                              onClick={() => confirmFinalization(session.id)}
+                              type="button"
+                              disabled={!cancelNote.trim()}
+                            >
+                              Konfirmasi Cancel
+                            </button>
+                          </div>
                         </div>
-                        <div className="confirm-actions">
-                          <button
-                            className="small-button"
-                            onClick={() => cancelFinalization(session.id)}
-                            type="button"
-                          >
-                            Batal
-                          </button>
-                          <button
-                            className="small-button active"
-                            onClick={() => confirmFinalization(session.id)}
-                            type="button"
-                          >
-                            Konfirmasi Selesai
-                          </button>
-                        </div>
-                      </div>
-                    )}
-
-                    {(pending?.status === 'Dibatalkan' || session.status === 'Dibatalkan') && (
-                      <label className="cancel-note">
-                        {isLocked ? 'Keterangan pembatalan' : 'Keterangan sebelum cancel'}
-                        <textarea
-                          value={cancelNote}
-                          onChange={(event) =>
-                            updatePendingCancelNote(session.id, event.target.value)
-                          }
-                          readOnly={isLocked}
-                          placeholder="Contoh: bahan belum lengkap, blueprint dipakai batch lain, atau order dibatalkan."
-                        />
-                      </label>
-                    )}
-
-                    {pending?.status === 'Dibatalkan' && (
-                      <div className="confirm-panel">
-                        <div>
-                          <strong>Konfirmasi cancel</strong>
-                          <p>
-                            Catatan wajib diisi. Setelah dikonfirmasi, status akan
-                            terkunci sebagai dibatalkan.
-                          </p>
-                        </div>
-                        <div className="confirm-actions">
-                          <button
-                            className="small-button"
-                            onClick={() => cancelFinalization(session.id)}
-                            type="button"
-                          >
-                            Batal
-                          </button>
-                          <button
-                            className="small-button active"
-                            onClick={() => confirmFinalization(session.id)}
-                            type="button"
-                            disabled={!cancelNote.trim()}
-                          >
-                            Konfirmasi Cancel
-                          </button>
-                        </div>
-                      </div>
-                    )}
-                  </article>
+                      )}
+                    </article>
                   )
                 })}
               </div>
