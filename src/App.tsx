@@ -63,7 +63,7 @@ const recipes: Record<
 
   ammo556: {
     name: '5.56x45',
-    unit: 'peluru',
+    unit: 'clip',
     accent: 'ammo',
     image: `${import.meta.env.BASE_URL}resource/ammo-556.svg`,
     description: '1 craft clip menghasilkan 120 peluru',
@@ -82,7 +82,7 @@ const recipes: Record<
   },
   ammo9mm: {
     name: '9mm',
-    unit: 'peluru',
+    unit: 'clip',
     accent: 'ammo',
     image: `${import.meta.env.BASE_URL}resource/ammo-9mm.svg`,
     description: '1 craft clip menghasilkan 120 peluru',
@@ -101,7 +101,7 @@ const recipes: Record<
   },
   ammo44: {
     name: '.44 Magnum',
-    unit: 'peluru',
+    unit: 'clip',
     accent: 'ammo',
     image: `${import.meta.env.BASE_URL}resource/ammo-44.svg`,
     description: '1 craft clip menghasilkan 50 peluru',
@@ -144,10 +144,6 @@ const initialLines: CraftLine[] = [
 ]
 
 function getCraftCount(line: CraftLine) {
-  const recipe = recipes[line.itemId]
-  if (recipe && recipe.yield && recipe.yield > 1) {
-    return Math.ceil(line.quantity / recipe.yield)
-  }
   return line.quantity
 }
 
