@@ -21,7 +21,7 @@ import { ref, onValue, push, update } from 'firebase/database'
 import { db } from './firebase'
 import './App.css'
 
-type ItemId = 'ammo556' | 'ammo9mm' | 'ammo44'
+type ItemId = 'ammo556' | 'ammo9mm' | 'ammo44' | 'deagle' | 'revolverMk2' | 'mp9' | 'vector'
 type Status = 'Dalam Proses' | 'Selesai' | 'Dibatalkan'
 type Resources = Record<string, number>
 
@@ -60,6 +60,74 @@ const recipes: Record<
     resources: Resources
   }
 > = {
+  deagle: {
+    name: 'Desert Eagle',
+    unit: 'senjata',
+    accent: 'weapon',
+    image: `${import.meta.env.BASE_URL}resource/deagle.svg`,
+    description: 'Pistol kelas berat',
+    resources: {
+      Aluminium: 15,
+      'Metal Scrap': 15,
+      Rubber: 15,
+      'Blueprint Weapon': 1,
+      Sulfur: 25,
+      Copper: 25,
+      'Chicken Feather': 10,
+      Iron: 25,
+    },
+  },
+  revolverMk2: {
+    name: 'Revolver MK2',
+    unit: 'senjata',
+    accent: 'weapon',
+    image: `${import.meta.env.BASE_URL}resource/revolver.svg`,
+    description: 'Revolver custom Mk2',
+    resources: {
+      Aluminium: 20,
+      'Metal Scrap': 20,
+      Rubber: 20,
+      'Blueprint Magnum': 1,
+      Sulfur: 40,
+      Copper: 40,
+      'Chicken Feather': 15,
+      Iron: 40,
+    },
+  },
+  mp9: {
+    name: 'MP9',
+    unit: 'senjata',
+    accent: 'weapon',
+    image: `${import.meta.env.BASE_URL}resource/mp9.svg`,
+    description: 'Submachine gun MP9',
+    resources: {
+      Aluminium: 20,
+      'Metal Scrap': 20,
+      Rubber: 20,
+      'Blueprint MP9': 1,
+      Sulfur: 40,
+      Copper: 40,
+      'Chicken Feather': 15,
+      Iron: 40,
+    },
+  },
+  vector: {
+    name: 'VECTOR',
+    unit: 'senjata',
+    accent: 'weapon',
+    image: `${import.meta.env.BASE_URL}resource/vector.svg`,
+    description: 'Submachine gun Vector',
+    resources: {
+      Aluminium: 20,
+      'Metal Scrap': 20,
+      Rubber: 20,
+      'Blueprint Vector': 1,
+      Sulfur: 40,
+      Copper: 40,
+      'Chicken Feather': 15,
+      Iron: 40,
+    },
+  },
 
   ammo556: {
     name: '5.56x45',
@@ -123,6 +191,15 @@ const recipes: Record<
 const base = import.meta.env.BASE_URL
 
 const resourceImages: Record<string, string> = {
+  Aluminium: `${base}resource/aluminium.svg`,
+  'Metal Scrap': `${base}resource/metal-scrap.svg`,
+  Rubber: `${base}resource/rubber.svg`,
+  'Blueprint Weapon': `${base}resource/blueprint.svg`,
+  Sulfur: `${base}resource/sulfur.svg`,
+  'Chicken Feather': `${base}resource/chicken-feather.svg`,
+  'Blueprint Magnum': `${base}resource/blueprint.svg`,
+  'Blueprint MP9': `${base}resource/blueprint.svg`,
+  'Blueprint Vector': `${base}resource/blueprint.svg`,
 
   'Blueprint 5_56X45MM': `${base}resource/blueprint.svg`,
   'Blueprint 9MM': `${base}resource/blueprint.svg`,
@@ -140,7 +217,7 @@ const resourceImages: Record<string, string> = {
 }
 
 const initialLines: CraftLine[] = [
-  { id: 1, itemId: 'ammo9mm', quantity: 1 },
+  { id: 1, itemId: 'deagle', quantity: 1 },
 ]
 
 function getCraftCount(line: CraftLine) {
@@ -825,9 +902,10 @@ function App() {
                               }
                             >
 
-                              <option value="ammo556">5.56x45</option>
-                              <option value="ammo9mm">9mm</option>
-                              <option value="ammo44">.44 Magnum</option>
+                              <option value="deagle">Desert Eagle</option>
+                              <option value="revolverMk2">Revolver MK2</option>
+                              <option value="mp9">MP9</option>
+                              <option value="vector">VECTOR</option>
                             </select>
                           </label>
                           <label>
