@@ -64,7 +64,7 @@ const recipes: Record<
     name: 'Desert Eagle',
     unit: 'senjata',
     accent: 'weapon',
-    image: `${import.meta.env.BASE_URL}resource/deagle.svg`,
+    image: `${import.meta.env.BASE_URL}resource/deagle.png`,
     description: 'Pistol kelas berat',
     resources: {
       Aluminium: 15,
@@ -81,7 +81,7 @@ const recipes: Record<
     name: 'Revolver MK2',
     unit: 'senjata',
     accent: 'weapon',
-    image: `${import.meta.env.BASE_URL}resource/revolver.svg`,
+    image: `${import.meta.env.BASE_URL}resource/revolver.png`,
     description: 'Revolver custom Mk2',
     resources: {
       Aluminium: 20,
@@ -98,7 +98,7 @@ const recipes: Record<
     name: 'MP9',
     unit: 'senjata',
     accent: 'weapon',
-    image: `${import.meta.env.BASE_URL}resource/mp9.svg`,
+    image: `${import.meta.env.BASE_URL}resource/mp9.png`,
     description: 'Submachine gun MP9',
     resources: {
       Aluminium: 20,
@@ -115,7 +115,7 @@ const recipes: Record<
     name: 'VECTOR',
     unit: 'senjata',
     accent: 'weapon',
-    image: `${import.meta.env.BASE_URL}resource/vector.svg`,
+    image: `${import.meta.env.BASE_URL}resource/vector.png`,
     description: 'Submachine gun Vector',
     resources: {
       Aluminium: 20,
