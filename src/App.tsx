@@ -149,6 +149,24 @@ const recipes: Record<
 
 const base = import.meta.env.BASE_URL
 
+const legacyRecipes: Record<string, { name: string; unit: string; accent: string; image: string; description: string; yield?: number; resources: Resources }> = {
+  ram7: { name: 'RAM-7', unit: 'senjata', accent: 'weapon', image: `${base}resource/ram7.svg`, description: 'Assault rifle', resources: {} },
+  ammo556: { name: '5.56x45', unit: 'clip', accent: 'ammo', image: `${base}resource/ammo-556.svg`, description: '120 peluru per craft', resources: {} },
+  ammo9mm: { name: '9mm', unit: 'clip', accent: 'ammo', image: `${base}resource/ammo-9mm.svg`, description: '120 peluru per craft', resources: {} },
+  ammo44: { name: '.44 Magnum', unit: 'clip', accent: 'ammo', image: `${base}resource/ammo-44.svg`, description: '50 peluru per craft', resources: {} },
+}
+
+function getRecipe(itemId: string) {
+  return recipes[itemId as ItemId] || legacyRecipes[itemId] || {
+    name: itemId || 'Unknown Item',
+    unit: 'item',
+    accent: 'weapon',
+    image: `${base}resource/blueprint.svg`,
+    description: '',
+    resources: {}
+  }
+}
+
 const resourceImages: Record<string, string> = {
   Aluminium: `${base}resource/aluminium.svg`,
   'Metal Scrap': `${base}resource/metal-scrap.svg`,
@@ -162,6 +180,18 @@ const resourceImages: Record<string, string> = {
   'Blueprint RIFLE': `${base}resource/blueprint.svg`,
   Copper: `${base}resource/copper.svg`,
   Iron: `${base}resource/iron.svg`,
+  'Blueprint 5_56X45MM': `${base}resource/blueprint.svg`,
+  'Blueprint 9MM': `${base}resource/blueprint.svg`,
+  'Blueprint 44_Magnum': `${base}resource/blueprint.svg`,
+  'Blueprint RAM-7': `${base}resource/blueprint.svg`,
+  'Gun Oil': `${base}resource/gun-oil.svg`,
+  Gold: `${base}resource/gold.svg`,
+  Emerald: `${base}resource/emerald.svg`,
+  Steel: `${base}resource/steel.svg`,
+  Silver: `${base}resource/silver.svg`,
+  'Olahan Kayu': `${base}resource/wood.svg`,
+  'Santa Muerte': `${base}resource/santa-muerte.svg`,
+  'Gun Powder': `${base}resource/gun-powder.svg`,
 }
 
 const initialLines: CraftLine[] = [
@@ -173,7 +203,7 @@ function getCraftCount(line: CraftLine) {
 }
 
 function getProducedAmount(line: CraftLine) {
-  const recipe = recipes[line.itemId]
+  const recipe = getRecipe(line.itemId)
   if (recipe && recipe.yield && recipe.yield > 1) {
     return getCraftCount(line) * recipe.yield
   }
@@ -182,12 +212,14 @@ function getProducedAmount(line: CraftLine) {
 
 function calculateResources(lines: CraftLine[]) {
   return lines.reduce<Resources>((total, line) => {
-    const recipe = recipes[line.itemId]
+    const recipe = getRecipe(line.itemId)
     const craftCount = getCraftCount(line)
 
-    Object.entries(recipe.resources).forEach(([resource, amount]) => {
-      total[resource] = (total[resource] ?? 0) + amount * craftCount
-    })
+    if (recipe && recipe.resources) {
+      Object.entries(recipe.resources).forEach(([resource, amount]) => {
+        total[resource] = (total[resource] ?? 0) + amount * craftCount
+      })
+    }
 
     return total
   }, {})
@@ -950,7 +982,7 @@ function App() {
                       <div className="resource-row" key={name}>
                         <div>
                           <span className="resource-name">
-                            <img src={resourceImages[name]} alt="" />
+                            <img src={resourceImages[name] || `${base}resource/blueprint.svg`} alt="" />
                             {formatResourceName(name)}
                           </span>
                           <strong>{amount.toLocaleString('id-ID')}</strong>
@@ -1307,12 +1339,15 @@ function App() {
                       </div>
 
                       <div className="session-items">
-                        {session.lines.map((line) => (
-                          <span key={line.id}>
-                            <img src={recipes[line.itemId].image} alt="" />
-                            {recipes[line.itemId].name}: {line.quantity} {recipes[line.itemId].unit}
-                          </span>
-                        ))}
+                        {session.lines?.map((line) => {
+                          const item = getRecipe(line.itemId)
+                          return (
+                            <span key={line.id}>
+                              <img src={item.image} alt="" />
+                              {item.name}: {line.quantity} {item.unit}
+                            </span>
+                          )
+                        })}
                       </div>
 
                       {/* Full Resource Summary — same style as calculator */}
@@ -1339,7 +1374,7 @@ function App() {
                             <div className="resource-row" key={name}>
                               <div>
                                 <span className="resource-name">
-                                  <img src={resourceImages[name]} alt="" />
+                                  <img src={resourceImages[name] || `${base}resource/blueprint.svg`} alt="" />
                                   {formatResourceName(name)}
                                 </span>
                                 <strong>{amount.toLocaleString('id-ID')}</strong>
