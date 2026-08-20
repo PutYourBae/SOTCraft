@@ -21,7 +21,7 @@ import { ref, onValue, push, update } from 'firebase/database'
 import { db } from './firebase'
 import './App.css'
 
-type ItemId = 'ammo556' | 'ammo9mm' | 'ammo44' | 'deagle' | 'revolverMk2' | 'mp9' | 'vector' | 'crxMk2'
+type ItemId = 'deagle' | 'revolverMk2' | 'mp9' | 'vector' | 'crxMk2'
 type Status = 'Dalam Proses' | 'Selesai' | 'Dibatalkan'
 type Resources = Record<string, number>
 
@@ -145,64 +145,6 @@ const recipes: Record<
       Aluminium: 30,
     },
   },
-
-  ammo556: {
-    name: '5.56x45',
-    unit: 'clip',
-    accent: 'ammo',
-    image: `${import.meta.env.BASE_URL}resource/ammo-556.svg`,
-    description: '1 craft clip menghasilkan 120 peluru',
-    output: '120 peluru per craft',
-    yield: 120,
-    resources: {
-      'Blueprint 5_56X45MM': 1,
-      Gold: 5,
-      Silver: 5,
-      Iron: 5,
-      Copper: 5,
-      'Olahan Kayu': 8,
-      'Santa Muerte': 1,
-      'Gun Powder': 1,
-    },
-  },
-  ammo9mm: {
-    name: '9mm',
-    unit: 'clip',
-    accent: 'ammo',
-    image: `${import.meta.env.BASE_URL}resource/ammo-9mm.svg`,
-    description: '1 craft clip menghasilkan 120 peluru',
-    output: '120 peluru per craft',
-    yield: 120,
-    resources: {
-      'Blueprint 9MM': 1,
-      Gold: 1,
-      Silver: 3,
-      Iron: 3,
-      Copper: 5,
-      'Olahan Kayu': 1,
-      'Santa Muerte': 1,
-      'Gun Powder': 1,
-    },
-  },
-  ammo44: {
-    name: '.44 Magnum',
-    unit: 'clip',
-    accent: 'ammo',
-    image: `${import.meta.env.BASE_URL}resource/ammo-44.svg`,
-    description: '1 craft clip menghasilkan 50 peluru',
-    output: '50 peluru per craft',
-    yield: 50,
-    resources: {
-      'Blueprint 44_Magnum': 1,
-      Gold: 2,
-      Silver: 3,
-      Iron: 5,
-      Copper: 8,
-      'Olahan Kayu': 5,
-      'Santa Muerte': 1,
-      'Gun Powder': 1,
-    },
-  },
 }
 
 const base = import.meta.env.BASE_URL
@@ -218,19 +160,7 @@ const resourceImages: Record<string, string> = {
   'Blueprint MP9': `${base}resource/blueprint.svg`,
   'Blueprint Vector': `${base}resource/blueprint.svg`,
   'Blueprint RIFLE': `${base}resource/blueprint.svg`,
-
-  'Blueprint 5_56X45MM': `${base}resource/blueprint.svg`,
-  'Blueprint 9MM': `${base}resource/blueprint.svg`,
-  'Blueprint 44_Magnum': `${base}resource/blueprint.svg`,
-  'Gun Oil': `${base}resource/gun-oil.svg`,
-  Gold: `${base}resource/gold.svg`,
-  Emerald: `${base}resource/emerald.svg`,
-  Steel: `${base}resource/steel.svg`,
-  Silver: `${base}resource/silver.svg`,
-  'Olahan Kayu': `${base}resource/wood.svg`,
   Copper: `${base}resource/copper.svg`,
-  'Santa Muerte': `${base}resource/santa-muerte.svg`,
-  'Gun Powder': `${base}resource/gun-powder.svg`,
   Iron: `${base}resource/iron.svg`,
 }
 
