@@ -549,7 +549,7 @@ function App() {
   function addLine() {
     setLines((current) => [
       ...current,
-      { id: Date.now(), itemId: 'ammo9mm', quantity: 1 },
+      { id: Date.now(), itemId: 'deagle', quantity: 1 },
     ])
   }
 
