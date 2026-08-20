@@ -221,12 +221,18 @@ type MarketItem = {
 }
 
 const marketItems: MarketItem[] = [
-  { id: 'lamp', name: 'Lamp', price: 1500, stock: 2000 },
-  { id: 'plant_pot', name: 'Plant Pot', price: 60, stock: 2000 },
-  { id: 'bibit_marijuana', name: 'Bibit Marijuana', price: 210, stock: 2000 },
-  { id: 'fertilizer', name: 'Fertilizer', price: 60, stock: 2000 },
-  { id: 'garden_pitcher', name: 'Garden Pitcher', price: 300, stock: 2000 },
-  { id: 'bagging_table', name: 'Bagging Table', price: 7500, stock: 2000 },
+  { id: 'heavy_barrel', name: 'Heavy Barrel', price: 500, stock: 2000 },
+  { id: 'extended_rifle_clip', name: 'Extended Rifle Clip', price: 500, stock: 2000 },
+  { id: 'rifle_drum', name: 'Rifle Drum', price: 500, stock: 2000 },
+  { id: 'tactical_suppressor', name: 'Tactical Suppressor', price: 500, stock: 2000 },
+  { id: 'tactical_flashlight', name: 'Tactical Flashlight', price: 500, stock: 2000 },
+  { id: 'grip', name: 'Grip', price: 500, stock: 2000 },
+  { id: 'medium_scope', name: 'Medium Scope', price: 500, stock: 2000 },
+  { id: 'suppressor', name: 'Suppressor', price: 500, stock: 2000 },
+  { id: 'extended_smg_clip', name: 'Extended SMG Clip', price: 500, stock: 2000 },
+  { id: 'macro_scope', name: 'Macro Scope', price: 500, stock: 2000 },
+  { id: 'extended_pistol_clip', name: 'Extended Pistol Clip', price: 500, stock: 2000 },
+  { id: 'extended_mg_clip', name: 'Extended MG Clip', price: 500, stock: 2000 },
 ]
 
 function formatResourceName(name: string) {
@@ -349,7 +355,7 @@ function App() {
     if (isNaN(amount) || amount <= 0) return
 
     if (bankMode === 'withdraw' && amount > dmBalance) {
-      alert('Saldo DM tidak cukup!')
+      alert('Saldo tidak cukup!')
       return
     }
 
@@ -386,7 +392,7 @@ function App() {
     if (!db) return
     if (totalDirtyMoney <= 0) return
     if (totalDirtyMoney > dmBalance) {
-      alert('Saldo DM tidak cukup untuk checkout!')
+      alert('Saldo tidak cukup untuk checkout!')
       return
     }
 
@@ -983,7 +989,7 @@ function App() {
                         <h3>{item.name}</h3>
                       </div>
                       <div className="market-item-actions">
-                        <span className="price">{item.price} DM</span>
+                        <span className="price">${item.price.toLocaleString('id-ID')}</span>
                         <div className="quantity-selector">
                           <button onClick={() => updateMarketQuantity(item.id, -1)} type="button" aria-label="Kurangi">-</button>
                           <input
@@ -1009,15 +1015,15 @@ function App() {
                 </div>
 
                 <div className="dirty-money-badge">
-                  <span>Total Dirty Money</span>
-                  <h2>{totalDirtyMoney.toLocaleString('id-ID')} DM</h2>
+                  <span>Total Pembelian</span>
+                  <h2>${totalDirtyMoney.toLocaleString('id-ID')}</h2>
                 </div>
 
-                {/* DM Balance indicator */}
+                {/* Balance indicator */}
                 <div className="dm-balance-indicator">
-                  <span>Saldo DM</span>
+                  <span>Saldo Kas</span>
                   <span className={totalDirtyMoney > dmBalance ? 'balance-insufficient' : 'balance-ok'}>
-                    {dmBalance.toLocaleString('id-ID')} DM
+                    ${dmBalance.toLocaleString('id-ID')}
                   </span>
                 </div>
 
@@ -1029,9 +1035,9 @@ function App() {
                     <div className="cart-row" key={cartItem.item.id}>
                       <div className="cart-row-info">
                         <strong>{cartItem.item.name}</strong>
-                        <span className="cart-row-qty">{cartItem.quantity}x @ {cartItem.item.price}</span>
+                        <span className="cart-row-qty">{cartItem.quantity}x @ ${cartItem.item.price.toLocaleString('id-ID')}</span>
                       </div>
-                      <strong>{cartItem.subtotal.toLocaleString('id-ID')}</strong>
+                      <strong>${cartItem.subtotal.toLocaleString('id-ID')}</strong>
                     </div>
                   ))}
                 </div>
@@ -1076,7 +1082,7 @@ function App() {
                             </div>
                           </div>
                           <span className="purchase-amount">
-                            -{tx.amount.toLocaleString('id-ID')} DM
+                            -${tx.amount.toLocaleString('id-ID')}
                           </span>
                         </div>
                       ))}
@@ -1090,8 +1096,8 @@ function App() {
           <div className="bank-page fade-in">
             {/* --- BALANCE HERO --- */}
             <section className="bank-hero">
-              <p className="eyebrow">Dirty Money Reserve</p>
-              <h2 className="bank-hero-balance">{dmBalance.toLocaleString('id-ID')} DM</h2>
+              <p className="eyebrow">Cash Reserve</p>
+              <h2 className="bank-hero-balance">${dmBalance.toLocaleString('id-ID')}</h2>
               <div className="bank-actions">
                 <button className="primary-button" onClick={() => setBankMode(bankMode === 'deposit' ? null : 'deposit')}>
                   DEPOSIT
@@ -1104,7 +1110,7 @@ function App() {
               {bankMode && (
                 <form className="bank-form fade-in" onSubmit={handleBankTransaction}>
                   <div className="form-group">
-                    <label>{bankMode === 'deposit' ? 'Jumlah Deposit (DM)' : 'Jumlah Withdraw (DM)'}</label>
+                    <label>{bankMode === 'deposit' ? 'Jumlah Deposit ($)' : 'Jumlah Withdraw ($)'}</label>
                     <input
                       type="number"
                       min="1"
@@ -1216,7 +1222,7 @@ function App() {
                     <div className="tx-header">
                       <span className={`tx-type ${tx.type}`}>{tx.type.toUpperCase()}</span>
                       <span className={`tx-amount ${tx.type}`}>
-                        {tx.type === 'deposit' ? '+' : '-'}{tx.amount.toLocaleString('id-ID')} DM
+                        {tx.type === 'deposit' ? '+' : '-'}${tx.amount.toLocaleString('id-ID')}
                       </span>
                     </div>
                     <div className="tx-meta">
