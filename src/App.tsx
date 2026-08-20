@@ -21,7 +21,7 @@ import { ref, onValue, push, update } from 'firebase/database'
 import { db } from './firebase'
 import './App.css'
 
-type ItemId = 'ammo556' | 'ammo9mm' | 'ammo44' | 'deagle' | 'revolverMk2' | 'mp9' | 'vector'
+type ItemId = 'ammo556' | 'ammo9mm' | 'ammo44' | 'deagle' | 'revolverMk2' | 'mp9' | 'vector' | 'crxMk2'
 type Status = 'Dalam Proses' | 'Selesai' | 'Dibatalkan'
 type Resources = Record<string, number>
 
@@ -128,6 +128,23 @@ const recipes: Record<
       Iron: 40,
     },
   },
+  crxMk2: {
+    name: 'CRX MK2',
+    unit: 'senjata',
+    accent: 'weapon',
+    image: `${import.meta.env.BASE_URL}resource/crx-mk2.png`,
+    description: 'Assault rifle CRX MK2',
+    resources: {
+      'Chicken Feather': 25,
+      'Blueprint RIFLE': 1,
+      Copper: 40,
+      Iron: 50,
+      'Metal Scrap': 40,
+      Rubber: 40,
+      Sulfur: 50,
+      Aluminium: 30,
+    },
+  },
 
   ammo556: {
     name: '5.56x45',
@@ -200,6 +217,7 @@ const resourceImages: Record<string, string> = {
   'Blueprint Magnum': `${base}resource/blueprint.svg`,
   'Blueprint MP9': `${base}resource/blueprint.svg`,
   'Blueprint Vector': `${base}resource/blueprint.svg`,
+  'Blueprint RIFLE': `${base}resource/blueprint.svg`,
 
   'Blueprint 5_56X45MM': `${base}resource/blueprint.svg`,
   'Blueprint 9MM': `${base}resource/blueprint.svg`,
@@ -906,6 +924,7 @@ function App() {
                               <option value="revolverMk2">Revolver MK2</option>
                               <option value="mp9">MP9</option>
                               <option value="vector">VECTOR</option>
+                              <option value="crxMk2">CRX MK2</option>
                             </select>
                           </label>
                           <label>
